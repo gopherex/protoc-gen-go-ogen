@@ -52,6 +52,10 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 	g.errs = nil
 	g.collectComponentNames(file.Messages)
 	g.oasVersion = openAPIVersion(fileOpts, fileHasWebhooks(file))
+	g.rejectStreaming(file)
+	if len(g.errs) > 0 {
+		return errors.Join(g.errs...)
+	}
 
 	paths := g.pathsObject(file)
 	webhooks := g.webhooksObject(file)
@@ -690,6 +694,31 @@ func getMethodOptions(method *protogen.Method) *ogen.MethodOptions {
 		}
 	}
 	return nil
+}
+
+// rejectStreaming fails fast if a streaming RPC is exposed via ogen. ogen is
+// unary-only; streaming belongs to a separate GraphQL/WebSocket generator.
+func (g *OpenAPIGenerator) rejectStreaming(file *protogen.File) {
+	for _, svc := range file.Services {
+		if opts := getServiceOptions(svc); opts != nil && opts.GetOmit() {
+			continue
+		}
+		for _, method := range svc.Methods {
+			mo := getMethodOptions(method)
+			if mo == nil || mo.GetOmit() {
+				continue
+			}
+			exposed := mo.GetHttpMethod() != ogen.HttpMethod_HTTP_METHOD_UNSPECIFIED || mo.GetWebhook().GetName() != ""
+			if !exposed {
+				continue
+			}
+			if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+				g.errs = append(g.errs, fmt.Errorf(
+					"method %s is a streaming RPC; protoc-gen-ogen supports only unary methods — remove its ogen.method binding or generate streaming with a GraphQL/WebSocket generator",
+					method.Desc.FullName()))
+			}
+		}
+	}
 }
 
 func fileHasWebhooks(file *protogen.File) bool {
