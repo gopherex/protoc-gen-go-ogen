@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package example.golden;
 
-option go_package = "github.com/yaroher/protoc-gen-ogen/example/golden;golden";
+option go_package = "github.com/yaroher/protoc-gen-ogen/example/gen;golden";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
@@ -43,7 +43,6 @@ option (ogen.file) = {
   openapi_output: "openapi.yaml"
   ogen_target: "ogen"
   ogen_package: "github.com/yaroher/protoc-gen-ogen/example/gen/ogen"
-  converters_package: "github.com/yaroher/protoc-gen-ogen/example/gen/converters"
 };
 
 service UserAPI {

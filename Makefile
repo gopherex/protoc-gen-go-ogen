@@ -12,16 +12,20 @@ gen-opts:
 .PHONY: build
 build:
 	go build -o $(CURDIR)/bin/protoc-gen-ogen ./
+	go build -o $(CURDIR)/bin/protoc-gen-go google.golang.org/protobuf/cmd/protoc-gen-go
 
 .PHONY: gen-test
 gen-test: build
 	rm -rf $(EXAMPLE_OUT_DIR)
 	mkdir -p $(EXAMPLE_OUT_DIR)
 	protoc \
-		-I $(CURDIR) \
 		-I $(EXAMPLE_DIR) \
+		-I $(CURDIR) \
 		-I $(VALIDATE_INC) \
+		--plugin=protoc-gen-go=$(CURDIR)/bin/protoc-gen-go \
 		--plugin=protoc-gen-ogen=$(CURDIR)/bin/protoc-gen-ogen \
+		--go_out=$(EXAMPLE_OUT_DIR) \
+		--go_opt=paths=source_relative \
 		--ogen_out=$(EXAMPLE_OUT_DIR) \
 		--ogen_opt=paths=source_relative \
 		--ogen_opt=ogen_config=$(EXAMPLE_DIR)/ogen.yml \

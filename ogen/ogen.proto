@@ -197,8 +197,9 @@ message FileOptions {
   // Short Go package name for generated ogen code (the ogen --package flag).
   // Empty means use the last path segment of ogen_package, then ogen_target.
   string ogen_package_name = 34;
-  // Go package path for converter code. Empty means current proto Go package.
-  string converters_package = 33;
+  // 33 and 35 reserved (former converters_package/converters_target). Converters
+  // are now generated into the protoc-gen-go package.
+  reserved 33, 35;
 
   // OpenAPI x-* extensions.
   repeated NamedString extensions = 100;

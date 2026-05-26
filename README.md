@@ -1,14 +1,16 @@
 # protoc-gen-ogen
 
-`protoc-gen-ogen` generates an OpenAPI document from protobuf descriptors. The
-generated OpenAPI document is intended to be passed to
-[`ogen`](https://github.com/ogen-go/ogen) to generate Go HTTP client/server
-types. Converter generation between protobuf and ogen types is the next layer:
+`protoc-gen-ogen` generates an OpenAPI document from protobuf descriptors, runs
+[`ogen`](https://github.com/ogen-go/ogen) in-process to generate Go HTTP
+client/server types, and generates converters between the protobuf Go structs
+(from `protoc-gen-go`) and the ogen types, emitted into the protobuf package:
 
 ```go
-proto.Target.ToOgen() ogen.Target
-FromOgen(ogen.Target) proto.Target
+func (x *Target) ToOgen() (*ogen.Target, error)
+func TargetFromOgen(*ogen.Target) (*Target, error)
 ```
+
+See `## Converters`.
 
 ## Current Pipeline
 
@@ -18,10 +20,12 @@ FromOgen(ogen.Target) proto.Target
 4. When `ogen.file.generate_ogen` is set, the plugin runs `ogen` **in-process**
    (as a library, pinned through `go.mod`) and emits the generated Go
    client/server/types through the protoc response.
-5. Converter generation will use the same descriptor mapping decisions.
+5. When `ogen.file.generate_converters` is set, the plugin generates
+   protobuf<->ogen converters reusing the same ogen IR (see `## Converters`).
 
-A single `protoc` run now produces both the OpenAPI document and the generated
-ogen Go code; there is no separate `ogen` invocation.
+A single `protoc` run (with `--go_out` and `--ogen_out`) produces the
+`protoc-gen-go` structs, the OpenAPI document, the ogen Go code, and the
+converters; there is no separate `ogen` invocation.
 
 Golden generation:
 
@@ -46,16 +50,19 @@ The full tested path is:
    go build -o ./bin/protoc-gen-ogen ./
    ```
 
-2. Run `protoc` against the golden protobuf file with the local plugin. The
-   plugin reads the ogen config, builds the OpenAPI document, runs ogen
-   in-process, and writes both outputs:
+2. Run `protoc` against the golden protobuf file with the local plugin (and
+   `protoc-gen-go` for the structs the converters bind to). The ogen plugin
+   reads the ogen config, builds the OpenAPI document, runs ogen in-process, and
+   generates converters:
 
    ```sh
    protoc \
-     -I . \
      -I ./example \
+     -I . \
      -I "$(go list -m -f '{{.Dir}}' github.com/envoyproxy/protoc-gen-validate)" \
+     --plugin=protoc-gen-go=./bin/protoc-gen-go \
      --plugin=protoc-gen-ogen=./bin/protoc-gen-ogen \
+     --go_out=./example/gen --go_opt=paths=source_relative \
      --ogen_out=./example/gen \
      --ogen_opt=paths=source_relative \
      --ogen_opt=ogen_config=./example/ogen.yml \
@@ -63,8 +70,10 @@ The full tested path is:
      ./example/golden.proto
    ```
 
-   This produces `example/gen/openapi.yaml` and the ogen package under
-   `example/gen/ogen`.
+   This produces `example/gen/golden.pb.go`, `example/gen/openapi.yaml`, the
+   ogen package under `example/gen/ogen`, and the converters alongside the
+   protobuf package (`example/gen/golden.converters.go` and
+   `example/gen/golden.converters_test.go`).
 
 3. Compile and test both the plugin repo and the generated ogen package:
 
@@ -87,7 +96,8 @@ Current option levels:
 - `ogen.file`: OpenAPI document metadata, servers, tags, output paths, ogen
   generation toggle (`generate_ogen`), ogen target dir (`ogen_target`, relative
   to `--ogen_out`), ogen Go import path (`ogen_package`) and short package name
-  (`ogen_package_name`, defaults to the last segment of `ogen_package`).
+  (`ogen_package_name`, defaults to the last segment of `ogen_package`),
+  converter generation toggle (`generate_converters`).
 - `ogen.service`: path prefix, tags, service-level servers.
 - `ogen.method`: HTTP binding, parameters, request body, responses, webhooks.
 - `ogen.message`: schema naming, schema metadata, additional properties.
@@ -120,6 +130,64 @@ Output rules per protobuf file:
   so the plugin still produces output.
 
 The standard `paths` and `module` protoc-gen parameters are also honored.
+
+## Converters
+
+With `ogen.file.generate_converters` set, the plugin also generates converters
+between the `protoc-gen-go` structs and the ogen types, emitted **into the
+protoc-gen-go package** (a `<file>.converters.go` next to `<file>.pb.go`). This
+requires `protoc-gen-go` output to exist (run `--go_out` in the same `protoc`
+invocation, into the same directory as `--ogen_out`).
+
+Converters are reused from the same in-process ogen run: the generator
+introspects ogen's IR (`gen.Generator.Types()`) for exact Go type and field
+names, correlating ogen structs to protobuf messages by their OpenAPI component
+ref. Per message it emits (in the protobuf package, so `ToOgen` is a method):
+
+```go
+func (x *<Msg>) ToOgen() (*ogen.<Type>, error)
+func <Msg>FromOgen(src *ogen.<Type>) (*<Msg>, error)
+```
+
+Top-level converters use pointers, matching ogen's client/handler signatures
+(`func (c *Client) CreateUser(ctx, *UserInput) (*User, error)`). Inside, ogen
+holds nested schema structs by value, so nested converters work on values and
+the recursion adds a single `*`/`&` at each nested struct boundary.
+
+Both directions return an error (see below). Generated code is kept small by
+delegating slice/map/timestamp/duration bridging to the runtime helper package
+`github.com/yaroher/protoc-gen-ogen/convert`.
+
+Covered: scalars, optional presence (`*T` <-> `OptT`), repeated (arrays), maps,
+enums (string or integer), `oneof` (<-> ogen sum types), nested messages
+(recursive), well-known types (`Timestamp`/`Duration` <-> `time.Time`/
+`time.Duration`, wrappers <-> nullable scalars), and string-format external
+types (`uuid.UUID`, `net/url.URL`, `net/netip.Addr`).
+
+Not converted (left as zero with a `// unsupported` comment): `Struct`/`Any`/
+`Value` raw-JSON (`jx.Raw`) and multipart file fields (`ht.MultipartFile`).
+
+When ogen's faker is enabled (the `debug/example_tests` feature), the plugin
+also generates `<file>.converters_test.go`: a round-trip per message that fakes
+an ogen value, runs `FromOgen` -> `ToOgen` -> `FromOgen`, and asserts
+`proto.Equal` of the two protobuf values (a stable fixpoint even when some
+fields are lossy). Messages with multipart file fields are skipped (ogen
+generates no faker for them). The test is not generated when the faker is
+disabled in the ogen config.
+
+### Why converters return errors
+
+`FromOgen` is total in practice, but `ToOgen` (protobuf -> ogen) can fail at
+runtime on real data, and that cannot be ruled out at generation time:
+
+- **Enums**: a protobuf enum holds any `int32`; the ogen enum is a closed set
+  (further narrowed when PGV `in`/`const` rules apply). A value outside the
+  ogen variant set has no target and returns an error.
+- **String formats**: ogen maps `format: uuid`/`uri`/`ipv4` to typed Go values;
+  the protobuf side is a plain string that may fail to parse.
+- **Propagation**: nested converters propagate these errors.
+
+Both directions use the `(T, error)` shape for a uniform, composable signature.
 
 ## OpenAPI Generation
 

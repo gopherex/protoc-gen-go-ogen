@@ -31,7 +31,7 @@ func (m *memFS) WriteFile(baseName string, source []byte) error {
 // generateOgen runs ogen in-process on the generated OpenAPI document and emits
 // the resulting Go files under the file's ogen target directory, relative to
 // protoc's --ogen_out.
-func (g *OpenAPIGenerator) generateOgen(fileOpts *ogen.FileOptions, specBytes []byte) error {
+func (g *OpenAPIGenerator) generateOgen(file *protogen.File, fileOpts *ogen.FileOptions, specBytes []byte) error {
 	opts, err := loadOgenConfig(g.Settings.OgenConfig)
 	if err != nil {
 		return err
@@ -61,6 +61,16 @@ func (g *OpenAPIGenerator) generateOgen(fileOpts *ogen.FileOptions, specBytes []
 		}
 		gf := g.Plugin.NewGeneratedFile(out, "")
 		if _, err := gf.Write(fsys.files[name]); err != nil {
+			return err
+		}
+	}
+
+	if fileOpts.GetGenerateConverters() {
+		fakerEnabled := false
+		if feats, ferr := opts.Generator.Features.Build(); ferr == nil {
+			fakerEnabled = feats.Has(ogengen.DebugExampleTests)
+		}
+		if err := g.generateConverters(file, fileOpts, generator, fakerEnabled); err != nil {
 			return err
 		}
 	}

@@ -935,8 +935,6 @@ type FileOptions struct {
 	// Short Go package name for generated ogen code (the ogen --package flag).
 	// Empty means use the last path segment of ogen_package, then ogen_target.
 	OgenPackageName string `protobuf:"bytes,34,opt,name=ogen_package_name,json=ogenPackageName,proto3" json:"ogen_package_name,omitempty"`
-	// Go package path for converter code. Empty means current proto Go package.
-	ConvertersPackage string `protobuf:"bytes,33,opt,name=converters_package,json=convertersPackage,proto3" json:"converters_package,omitempty"`
 	// OpenAPI x-* extensions.
 	Extensions    []*NamedString `protobuf:"bytes,100,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1095,13 +1093,6 @@ func (x *FileOptions) GetOgenPackage() string {
 func (x *FileOptions) GetOgenPackageName() string {
 	if x != nil {
 		return x.OgenPackageName
-	}
-	return ""
-}
-
-func (x *FileOptions) GetConvertersPackage() string {
-	if x != nil {
-		return x.ConvertersPackage
 	}
 	return ""
 }
@@ -2185,7 +2176,7 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\t_nullableB\f\n" +
 	"\n" +
 	"_read_onlyB\r\n" +
-	"\v_write_only\"\x98\x06\n" +
+	"\v_write_only\"\xf5\x05\n" +
 	"\vFileOptions\x12)\n" +
 	"\x10generate_openapi\x18\x01 \x01(\bR\x0fgenerateOpenapi\x12#\n" +
 	"\rgenerate_ogen\x18\x02 \x01(\bR\fgenerateOgen\x12/\n" +
@@ -2206,11 +2197,10 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\vogen_target\x18\x1f \x01(\tR\n" +
 	"ogenTarget\x12!\n" +
 	"\fogen_package\x18  \x01(\tR\vogenPackage\x12*\n" +
-	"\x11ogen_package_name\x18\" \x01(\tR\x0fogenPackageName\x12-\n" +
-	"\x12converters_package\x18! \x01(\tR\x11convertersPackage\x121\n" +
+	"\x11ogen_package_name\x18\" \x01(\tR\x0fogenPackageName\x121\n" +
 	"\n" +
 	"extensions\x18d \x03(\v2\x11.ogen.NamedStringR\n" +
-	"extensions\"\x88\x04\n" +
+	"extensionsJ\x04\b!\x10\"J\x04\b#\x10$\"\x88\x04\n" +
 	"\x0eMessageOptions\x12\x12\n" +
 	"\x04omit\x18\x01 \x01(\bR\x04omit\x12\x1f\n" +
 	"\vschema_name\x18\x02 \x01(\tR\n" +

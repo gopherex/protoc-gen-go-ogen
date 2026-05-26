@@ -109,7 +109,7 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 	}
 
 	if fileOpts.GetGenerateOgen() {
-		if err := g.generateOgen(fileOpts, data); err != nil {
+		if err := g.generateOgen(file, fileOpts, data); err != nil {
 			return err
 		}
 	}
