@@ -405,10 +405,20 @@ Per operation, the adapter:
 Errors are converted in `NewError`: the gRPC `status.Code` maps to an HTTP
 status (grpc-gateway table) and the code/message — and details if the error
 schema has a `details` array field — are unpacked into the ogen error response.
-Runtime helpers live in `github.com/yaroher/protoc-gen-ogen/grpcbridge`.
+This is the only correct path for variable error statuses: ogen's response
+encoder dispatches on the Go type, so two responses sharing one schema (e.g. a
+`404` and a `default` both using `Error`) collapse to a single status — there is
+no reliable typed per-status error variant to return.
 
-Phase 1 covers unary operations. Webhooks, multipart file bodies (file parts are
-left zero), typed per-status error variants, and streaming are not yet handled.
+Webhooks are also adapted: the `OgenAdapter` implements `ogen.WebhookHandler`
+too, delegating webhook operations to their gRPC methods. Multipart file fields
+are read into the protobuf `bytes` field via `grpcbridge.ReadMultipart` (and the
+reverse via `grpcbridge.BytesMultipart`). No-content (e.g. `204`) successes
+return the generated no-content variant.
+
+Runtime helpers live in `github.com/yaroher/protoc-gen-ogen/grpcbridge`.
+Streaming is not adapted because protobuf streaming has no OpenAPI/ogen mapping
+in this generator.
 
 ## Idempotency
 

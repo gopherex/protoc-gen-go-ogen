@@ -4,14 +4,30 @@
 package grpcbridge
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
+	ht "github.com/ogen-go/ogen/http"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
+
+// ReadMultipart reads an uploaded multipart file into a byte slice.
+func ReadMultipart(f ht.MultipartFile) ([]byte, error) {
+	if f.File == nil {
+		return nil, nil
+	}
+	return io.ReadAll(f.File)
+}
+
+// BytesMultipart wraps raw bytes as a multipart file for outgoing requests.
+func BytesMultipart(b []byte) ht.MultipartFile {
+	return ht.MultipartFile{File: bytes.NewReader(b), Size: int64(len(b))}
+}
 
 // HTTPStatus maps a gRPC status code to an HTTP status code, following the
 // grpc-gateway convention.

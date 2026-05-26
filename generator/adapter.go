@@ -34,32 +34,34 @@ func (g *OpenAPIGenerator) generateAdapter(file *protogen.File, fileOpts *ogen.F
 			if mo == nil || mo.GetOmit() || mo.GetHttpMethod() == ogen.HttpMethod_HTTP_METHOD_UNSPECIFIED {
 				continue
 			}
-			if mo.GetWebhook().GetName() != "" {
-				continue // webhooks handled separately (phase 2)
-			}
 			byOpID[operationID(svc, m, mo)] = opMethod{svc: svc, method: m, opts: mo}
 		}
 	}
 
-	// Match ogen operations to proto methods.
+	// Match ogen operations (paths and webhooks) to proto methods.
 	type pair struct {
 		op *ir.Operation
 		om opMethod
 	}
-	var pairs []pair
 	usedSvc := map[*protogen.Service]bool{}
-	for _, op := range gen.Operations() {
-		om, ok := byOpID[op.Spec.OperationID]
-		if !ok {
-			continue
+	collectPairs := func(ops []*ir.Operation) []pair {
+		var out []pair
+		for _, op := range ops {
+			om, ok := byOpID[op.Spec.OperationID]
+			if !ok {
+				continue
+			}
+			out = append(out, pair{op: op, om: om})
+			usedSvc[om.svc] = true
 		}
-		pairs = append(pairs, pair{op: op, om: om})
-		usedSvc[om.svc] = true
+		sort.Slice(out, func(i, j int) bool { return out[i].op.Name < out[j].op.Name })
+		return out
 	}
-	if len(pairs) == 0 {
+	pairs := collectPairs(gen.Operations())
+	webhookPairs := collectPairs(gen.Webhooks())
+	if len(pairs) == 0 && len(webhookPairs) == 0 {
 		return
 	}
-	sort.Slice(pairs, func(i, j int) bool { return pairs[i].op.Name < pairs[j].op.Name })
 
 	var svcs []*protogen.Service
 	for _, svc := range file.Services {
@@ -103,11 +105,19 @@ func (g *OpenAPIGenerator) generateAdapter(file *protogen.File, fileOpts *ogen.F
 	for _, p := range pairs {
 		a.genMethod(p.op, p.om)
 	}
+	for _, p := range webhookPairs {
+		a.genMethod(p.op, p.om)
+	}
 
 	a.genNewError(gen)
 
-	// Compile-time check that the adapter implements the ogen Handler.
-	a.gf.P("var _ ", a.oid("Handler"), " = (*OgenAdapter)(nil)")
+	// Compile-time checks that the adapter implements the ogen interfaces.
+	if len(pairs) > 0 {
+		a.gf.P("var _ ", a.oid("Handler"), " = (*OgenAdapter)(nil)")
+	}
+	if len(webhookPairs) > 0 {
+		a.gf.P("var _ ", a.oid("WebhookHandler"), " = (*OgenAdapter)(nil)")
+	}
 	a.gf.P()
 }
 
@@ -168,7 +178,7 @@ func (a *adapterGen) genMethod(op *ir.Operation, om opMethod) {
 		a.gf.P()
 		return
 	}
-	a.genResponse(om, failRet)
+	a.genResponse(op, om, failRet)
 	a.gf.P("}")
 	a.gf.P()
 }
@@ -247,8 +257,14 @@ func (a *adapterGen) setParamField(field *protogen.Field, inner *ir.Type, src st
 	}
 }
 
-// genResponse extracts the success body from the gRPC response and converts it.
-func (a *adapterGen) genResponse(om opMethod, failRet string) {
+// genResponse returns the success result: a no-content variant struct, or the
+// success body field converted via ToOgen.
+func (a *adapterGen) genResponse(op *ir.Operation, om opMethod, failRet string) {
+	if sr := successIRResponse(op); sr != nil && sr.NoContent != nil && len(sr.Contents) == 0 {
+		a.gf.P("_ = resp")
+		a.gf.P("return &", a.oid(sr.NoContent.Name), "{}, nil")
+		return
+	}
 	fp := successFieldPath(om.opts)
 	src := "resp"
 	if fp != "" {
@@ -261,6 +277,19 @@ func (a *adapterGen) genResponse(om opMethod, failRet string) {
 	a.gf.P("return ", failRet, "err")
 	a.gf.P("}")
 	a.gf.P("return out, nil")
+}
+
+// successIRResponse returns the 2xx ogen response for an operation, if any.
+func successIRResponse(op *ir.Operation) *ir.Response {
+	if op.Responses == nil {
+		return nil
+	}
+	for code, r := range op.Responses.StatusCode {
+		if code >= 200 && code < 300 {
+			return r
+		}
+	}
+	return op.Responses.Pattern[1] // 2xx pattern
 }
 
 // genNewError maps gRPC status codes/messages/details onto the ogen error type.

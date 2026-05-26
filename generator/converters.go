@@ -204,6 +204,8 @@ func (c *convGen) genMessage(msg *protogen.Message, ot *ir.Type) {
 // goType renders the Go type expression for an ogen ir.Type within the converter file.
 func (c *convGen) goType(t *ir.Type) string {
 	switch {
+	case isMultipart(t):
+		return c.gf.QualifiedGoIdent(protogen.GoIdent{GoName: "MultipartFile", GoImportPath: "github.com/ogen-go/ogen/http"})
 	case externalImports[t.Go()] != "":
 		return c.gf.QualifiedGoIdent(c.ext(t.Go()))
 	case t.Is(ir.KindArray):

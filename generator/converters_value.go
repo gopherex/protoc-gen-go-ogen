@@ -24,7 +24,7 @@ func unsupportedType(t *ir.Type) bool {
 	if t == nil {
 		return true
 	}
-	if externalImports[t.Go()] != "" {
+	if externalImports[t.Go()] != "" || isMultipart(t) {
 		return false
 	}
 	switch {
@@ -57,6 +57,12 @@ func (c *convGen) conv(name string) protogen.GoIdent {
 }
 
 func (c *convGen) qual(id protogen.GoIdent) string { return c.gf.QualifiedGoIdent(id) }
+
+func (c *convGen) grpcb(name string) protogen.GoIdent {
+	return protogen.GoIdent{GoName: name, GoImportPath: grpcbridgeImport}
+}
+
+func isMultipart(t *ir.Type) bool { return strings.Contains(t.Go(), "MultipartFile") }
 
 func extIdent(pkg, name string) protogen.GoIdent {
 	imports := map[string]protogen.GoImportPath{
@@ -186,6 +192,9 @@ func (c *convGen) elemCanError(pf *protogen.Field, ot *ir.Type, toOgen bool) boo
 	if isWKT(pf) {
 		return false
 	}
+	if isMultipart(ot) {
+		return !toOgen // reading a multipart file can fail; wrapping cannot
+	}
 	if ot.Is(ir.KindStruct) {
 		return true
 	}
@@ -263,6 +272,8 @@ func (c *convGen) toOgenInner(pf *protogen.Field, ot *ir.Type, src string) (stri
 		return ot.Go() + "(" + src + ".GetValue())", true
 	}
 	switch {
+	case isMultipart(ot):
+		return c.qual(c.grpcb("BytesMultipart")) + "(" + src + ")", true
 	case ot.Is(ir.KindStruct):
 		tmp := c.newTmp("o")
 		c.gf.P(tmp, ", err := ", src, ".ToOgen()")
@@ -477,6 +488,13 @@ func (c *convGen) fromOgenInner(pf *protogen.Field, ot *ir.Type, src string) (st
 		return c.qual(extIdent("wrapperspb", ctor)) + "(" + protoScalarGo(valKind) + "(" + src + "))", true
 	}
 	switch {
+	case isMultipart(ot):
+		tmp := c.newTmp("mp")
+		c.gf.P(tmp, ", err := ", c.qual(c.grpcb("ReadMultipart")), "(", src, ")")
+		c.gf.P("if err != nil {")
+		c.failLine()
+		c.gf.P("}")
+		return tmp, true
 	case ot.Is(ir.KindStruct):
 		tmp := c.newTmp("m")
 		// FromOgen takes *ogen.T; ogen holds nested structs by value, so address it.
