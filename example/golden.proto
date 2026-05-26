@@ -17,6 +17,7 @@ option (ogen.file) = {
   generate_openapi: true
   generate_ogen: true
   generate_converters: true
+  generate_grpc_adapter: true
   title: "Golden Example API"
   version: "1.0.0"
   description: "Golden fixture for protoc-gen-ogen options."

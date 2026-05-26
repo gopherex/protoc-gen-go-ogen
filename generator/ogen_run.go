@@ -73,6 +73,9 @@ func (g *OpenAPIGenerator) generateOgen(file *protogen.File, fileOpts *ogen.File
 		if err := g.generateConverters(file, fileOpts, generator, fakerEnabled); err != nil {
 			return err
 		}
+		if fileOpts.GetGenerateGrpcAdapter() {
+			g.generateAdapter(file, fileOpts, generator)
+		}
 	}
 	return nil
 }

@@ -169,6 +169,9 @@ message FileOptions {
   bool generate_ogen = 2;
   // Generate proto <-> ogen converters.
   bool generate_converters = 3;
+  // Generate an ogen Handler adapter that delegates to the gRPC service impl.
+  // Requires generate_ogen + generate_converters and protoc-gen-go-grpc output.
+  bool generate_grpc_adapter = 4;
 
   // OpenAPI version. Empty means generator default, normally "3.1.0" or "3.0.3".
   string openapi_version = 10;

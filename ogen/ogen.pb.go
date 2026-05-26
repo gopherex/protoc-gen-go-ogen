@@ -909,6 +909,9 @@ type FileOptions struct {
 	GenerateOgen bool `protobuf:"varint,2,opt,name=generate_ogen,json=generateOgen,proto3" json:"generate_ogen,omitempty"`
 	// Generate proto <-> ogen converters.
 	GenerateConverters bool `protobuf:"varint,3,opt,name=generate_converters,json=generateConverters,proto3" json:"generate_converters,omitempty"`
+	// Generate an ogen Handler adapter that delegates to the gRPC service impl.
+	// Requires generate_ogen + generate_converters and protoc-gen-go-grpc output.
+	GenerateGrpcAdapter bool `protobuf:"varint,4,opt,name=generate_grpc_adapter,json=generateGrpcAdapter,proto3" json:"generate_grpc_adapter,omitempty"`
 	// OpenAPI version. Empty means generator default, normally "3.1.0" or "3.0.3".
 	OpenapiVersion string `protobuf:"bytes,10,opt,name=openapi_version,json=openapiVersion,proto3" json:"openapi_version,omitempty"`
 	// OpenAPI Info.title. Empty means derive from protobuf package/file name.
@@ -988,6 +991,13 @@ func (x *FileOptions) GetGenerateOgen() bool {
 func (x *FileOptions) GetGenerateConverters() bool {
 	if x != nil {
 		return x.GenerateConverters
+	}
+	return false
+}
+
+func (x *FileOptions) GetGenerateGrpcAdapter() bool {
+	if x != nil {
+		return x.GenerateGrpcAdapter
 	}
 	return false
 }
@@ -2176,11 +2186,12 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\t_nullableB\f\n" +
 	"\n" +
 	"_read_onlyB\r\n" +
-	"\v_write_only\"\xf5\x05\n" +
+	"\v_write_only\"\xa9\x06\n" +
 	"\vFileOptions\x12)\n" +
 	"\x10generate_openapi\x18\x01 \x01(\bR\x0fgenerateOpenapi\x12#\n" +
 	"\rgenerate_ogen\x18\x02 \x01(\bR\fgenerateOgen\x12/\n" +
-	"\x13generate_converters\x18\x03 \x01(\bR\x12generateConverters\x12'\n" +
+	"\x13generate_converters\x18\x03 \x01(\bR\x12generateConverters\x122\n" +
+	"\x15generate_grpc_adapter\x18\x04 \x01(\bR\x13generateGrpcAdapter\x12'\n" +
 	"\x0fopenapi_version\x18\n" +
 	" \x01(\tR\x0eopenapiVersion\x12\x14\n" +
 	"\x05title\x18\v \x01(\tR\x05title\x12\x18\n" +
