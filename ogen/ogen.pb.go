@@ -2363,7 +2363,7 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18\xfe\xd4\x03 \x01(\v2\x12.ogen.FieldOptionsR\x05field:I\n" +
 	"\x05oneof\x12\x1d.google.protobuf.OneofOptions\x18\xfe\xd4\x03 \x01(\v2\x12.ogen.OneofOptionsR\x05oneof:Q\n" +
 	"\aservice\x12\x1f.google.protobuf.ServiceOptions\x18\xfe\xd4\x03 \x01(\v2\x14.ogen.ServiceOptionsR\aservice:M\n" +
-	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18\xfe\xd4\x03 \x01(\v2\x13.ogen.MethodOptionsR\x06methodB)Z'github.com/yaroher/protoc-gen-ogen/ogenb\x06proto3"
+	"\x06method\x12\x1e.google.protobuf.MethodOptions\x18\xfe\xd4\x03 \x01(\v2\x13.ogen.MethodOptionsR\x06methodB-Z+github.com/gopherex/protoc-gen-go-ogen/ogenb\x06proto3"
 
 var (
 	file_ogen_ogen_proto_rawDescOnce sync.Once

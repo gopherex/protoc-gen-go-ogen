@@ -1,0 +1,650 @@
+components:
+    schemas:
+        Address:
+            additionalProperties: false
+            properties:
+                city:
+                    type: string
+                countryCode:
+                    pattern: ^[A-Z]{2}$
+                    type: string
+                line1:
+                    type: string
+                line2:
+                    type: string
+            required:
+                - city
+                - countryCode
+                - line1
+            type: object
+        CoveragePayload:
+            additionalProperties: false
+            description: Covers protobuf shapes that must map to OpenAPI and ogen.
+            properties:
+                anyJsonValue: {}
+                anyValue:
+                    additionalProperties: true
+                    type: object
+                boolValue:
+                    type: boolean
+                boolWrapper:
+                    nullable: true
+                    type: boolean
+                bytesValue:
+                    format: byte
+                    type: string
+                bytesWrapper:
+                    format: byte
+                    nullable: true
+                    type: string
+                doubleValue:
+                    format: double
+                    type: number
+                doubleWrapper:
+                    format: double
+                    nullable: true
+                    type: number
+                durationValue:
+                    format: duration
+                    type: string
+                enumValue:
+                    enum:
+                        - USER_STATUS_ACTIVE
+                        - USER_STATUS_DISABLED
+                        - USER_STATUS_DELETED
+                    type: string
+                fixed32Value:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                fixed64Value:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                floatValue:
+                    format: float
+                    type: number
+                int32Value:
+                    format: int32
+                    type: integer
+                int64Value:
+                    format: int64
+                    type: integer
+                int64Wrapper:
+                    format: int64
+                    nullable: true
+                    type: integer
+                listValue:
+                    items: {}
+                    type: array
+                nested:
+                    $ref: '#/components/schemas/NestedCoverage'
+                nestedMap:
+                    additionalProperties:
+                        $ref: '#/components/schemas/NestedCoverage'
+                    type: object
+                optionalInt64:
+                    format: int64
+                    type: integer
+                optionalString:
+                    nullable: true
+                    type: string
+                repeatedEnum:
+                    items:
+                        enum:
+                            - USER_STATUS_UNSPECIFIED
+                            - USER_STATUS_ACTIVE
+                            - USER_STATUS_DISABLED
+                            - USER_STATUS_DELETED
+                        type: string
+                    type: array
+                repeatedInt32:
+                    items:
+                        format: int32
+                        type: integer
+                    type: array
+                repeatedString:
+                    items:
+                        type: string
+                    type: array
+                search:
+                    oneOf:
+                        - type: string
+                        - format: int64
+                          type: integer
+                        - $ref: '#/components/schemas/NestedCoverage'
+                sfixed32Value:
+                    format: int32
+                    type: integer
+                sfixed64Value:
+                    format: int64
+                    type: integer
+                sint32Value:
+                    format: int32
+                    type: integer
+                sint64Value:
+                    format: int64
+                    type: integer
+                stringInt64Map:
+                    additionalProperties:
+                        format: int64
+                        type: integer
+                    type: object
+                stringValue:
+                    type: string
+                stringWrapper:
+                    nullable: true
+                    type: string
+                structValue:
+                    additionalProperties: true
+                    type: object
+                timestampValue:
+                    format: date-time
+                    type: string
+                uint32Value:
+                    format: int32
+                    minimum: 0
+                    type: integer
+                uint64Value:
+                    format: int64
+                    minimum: 0
+                    type: integer
+                uint64Wrapper:
+                    format: int64
+                    minimum: 0
+                    nullable: true
+                    type: integer
+            type: object
+            x-ogen-name: Coverage
+        CreatePostRequest:
+            additionalProperties: false
+            properties:
+                attachments:
+                    format: binary
+                    items:
+                        format: binary
+                        type: string
+                    type: array
+                content:
+                    type: string
+                thumbnail:
+                    format: binary
+                    type: string
+                title:
+                    type: string
+                    x-oapi-codegen-extra-tags:
+                        validate: required
+            required:
+                - content
+                - title
+            type: object
+        CreateUserRequest:
+            additionalProperties: false
+            properties:
+                user:
+                    $ref: '#/components/schemas/UserInput'
+            required:
+                - user
+            type: object
+        CreateUserResponse:
+            additionalProperties: false
+            properties:
+                user:
+                    $ref: '#/components/schemas/User'
+            required:
+                - user
+            type: object
+        DeleteUserRequest:
+            additionalProperties: false
+            properties:
+                id:
+                    format: uuid
+                    type: string
+            required:
+                - id
+            type: object
+        EchoCoverageRequest:
+            additionalProperties: false
+            properties:
+                payload:
+                    $ref: '#/components/schemas/CoveragePayload'
+            required:
+                - payload
+            type: object
+        EchoCoverageResponse:
+            additionalProperties: false
+            properties:
+                payload:
+                    $ref: '#/components/schemas/CoveragePayload'
+            required:
+                - payload
+            type: object
+        Error:
+            additionalProperties: false
+            properties:
+                code:
+                    type: string
+                message:
+                    type: string
+            required:
+                - code
+                - message
+            type: object
+        GetUserRequest:
+            additionalProperties: false
+            properties:
+                id:
+                    format: uuid
+                    type: string
+                requestId:
+                    format: uuid
+                    nullable: true
+                    type: string
+            required:
+                - id
+            type: object
+        GetUserResponse:
+            additionalProperties: false
+            properties:
+                user:
+                    $ref: '#/components/schemas/User'
+            required:
+                - user
+            type: object
+        ListUsersRequest:
+            additionalProperties: false
+            properties:
+                filters:
+                    additionalProperties:
+                        type: string
+                    type: object
+                pageSize:
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                pageToken:
+                    type: string
+            type: object
+        ListUsersResponse:
+            additionalProperties: false
+            properties:
+                nextPageToken:
+                    type: string
+                users:
+                    items:
+                        $ref: '#/components/schemas/User'
+                    type: array
+            required:
+                - users
+            type: object
+        NestedCoverage:
+            additionalProperties: false
+            properties:
+                name:
+                    type: string
+                note:
+                    nullable: true
+                    type: string
+            type: object
+        UploadAvatarRequest:
+            additionalProperties: false
+            properties:
+                data:
+                    format: binary
+                    type: string
+            required:
+                - data
+            type: object
+        User:
+            additionalProperties: false
+            description: Public user representation.
+            properties:
+                addresses:
+                    items:
+                        $ref: '#/components/schemas/Address'
+                    type: array
+                avatarUrl:
+                    format: uri
+                    nullable: true
+                    type: string
+                createdAt:
+                    format: date-time
+                    type: string
+                displayName:
+                    type: string
+                email:
+                    format: email
+                    type: string
+                id:
+                    format: uuid
+                    type: string
+                labels:
+                    additionalProperties:
+                        type: string
+                    type: object
+                status:
+                    enum:
+                        - USER_STATUS_UNSPECIFIED
+                        - USER_STATUS_ACTIVE
+                        - USER_STATUS_DISABLED
+                        - USER_STATUS_DELETED
+                    type: string
+                updatedAt:
+                    format: date-time
+                    type: string
+            required:
+                - displayName
+                - email
+                - id
+            type: object
+        UserChangedEvent:
+            additionalProperties: false
+            properties:
+                deliveryId:
+                    format: uuid
+                    type: string
+                event:
+                    $ref: '#/components/schemas/UserChangedPayload'
+            required:
+                - deliveryId
+                - event
+            type: object
+        UserChangedPayload:
+            additionalProperties: false
+            properties:
+                action:
+                    type: string
+                user:
+                    $ref: '#/components/schemas/User'
+            required:
+                - action
+                - user
+            type: object
+        UserInput:
+            additionalProperties: false
+            description: Input payload for creating a user.
+            properties:
+                displayName:
+                    maxLength: 80
+                    minLength: 1
+                    type: string
+                email:
+                    format: email
+                    type: string
+                labels:
+                    additionalProperties:
+                        type: string
+                    maxProperties: 20
+                    type: object
+                roles:
+                    items:
+                        maxLength: 32
+                        minLength: 1
+                        type: string
+                    maxItems: 10
+                    minItems: 1
+                    type: array
+                    uniqueItems: true
+            required:
+                - displayName
+                - email
+            type: object
+            x-ogen-properties:
+                displayName:
+                    name: PublicName
+info:
+    description: Golden fixture for protoc-gen-ogen options.
+    title: Golden Example API
+    version: 1.0.0
+openapi: 3.1.0
+paths:
+    /v1/avatar:
+        post:
+            operationId: uploadAvatar
+            requestBody:
+                content:
+                    image/png:
+                        schema:
+                            format: binary
+                            type: string
+                required: true
+            responses:
+                "200":
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Upload avatar
+            tags:
+                - uploads
+            x-ogen-operation-group: Uploads
+    /v1/coverage/echo:
+        post:
+            operationId: echoCoverage
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/EchoCoverageRequest'
+                        x-ogen-json-streaming: true
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/EchoCoverageResponse'
+                    description: Echoed schema coverage payload.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Echo schema coverage payload
+            tags:
+                - coverage
+            x-ogen-operation-group: Coverage
+    /v1/posts:
+        post:
+            operationId: createPost
+            requestBody:
+                content:
+                    multipart/form-data:
+                        schema:
+                            $ref: '#/components/schemas/CreatePostRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Create post with files
+            tags:
+                - uploads
+            x-ogen-operation-group: Uploads
+    /v1/users:
+        get:
+            operationId: listUsers
+            parameters:
+                - in: query
+                  name: pageSize
+                  schema:
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                - in: query
+                  name: pageToken
+                  schema:
+                    type: string
+                - explode: true
+                  in: query
+                  name: filters
+                  schema:
+                    additionalProperties:
+                        type: string
+                    type: object
+                  style: deepObject
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListUsersResponse'
+                    description: Users page.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: List users
+            tags:
+                - users
+            x-ogen-operation-group: Users
+        post:
+            operationId: createUser
+            parameters:
+                - description: Optional idempotency key used to safely retry the request.
+                  in: header
+                  name: Idempotency-Key
+                  required: false
+                  schema:
+                    format: uuid
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserInput'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+                    description: User created.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Create user
+            tags:
+                - users
+            x-idempotency-level: IDEMPOTENT
+            x-ogen-operation-group: Users
+    /v1/users/{id}:
+        delete:
+            operationId: deleteUser
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    format: uuid
+                    type: string
+            responses:
+                "204":
+                    description: User deleted.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Delete user
+            tags:
+                - users
+            x-ogen-operation-group: Users
+        get:
+            operationId: getUser
+            parameters:
+                - in: path
+                  name: id
+                  required: true
+                  schema:
+                    format: uuid
+                    type: string
+                - in: header
+                  name: X-Request-ID
+                  schema:
+                    format: uuid
+                    nullable: true
+                    type: string
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/User'
+                    description: User found.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: User not found.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Get user
+            tags:
+                - users
+            x-idempotency-level: NO_SIDE_EFFECTS
+            x-ogen-operation-group: Users
+servers:
+    - description: Production
+      url: https://api.example.com
+      x-ogen-server-name: production
+tags:
+    - description: User operations
+      name: users
+    - description: Schema coverage operations
+      name: coverage
+    - description: Webhook callback operations
+      name: webhooks
+webhooks:
+    userChanged:
+        post:
+            operationId: userChangedWebhook
+            parameters:
+                - in: header
+                  name: X-Webhook-Delivery
+                  required: true
+                  schema:
+                    format: uuid
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UserChangedPayload'
+                required: true
+            responses:
+                "204":
+                    description: Webhook accepted.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Receive user change webhook
+            tags:
+                - webhooks
+            x-ogen-operation-group: Webhooks

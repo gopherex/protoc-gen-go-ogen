@@ -50,7 +50,7 @@ func unsupportedType(t *ir.Type) bool {
 	}
 }
 
-const convertImport = protogen.GoImportPath("github.com/yaroher/protoc-gen-ogen/convert")
+const convertImport = protogen.GoImportPath("github.com/gopherex/protoc-gen-go-ogen/convert")
 
 func (c *convGen) conv(name string) protogen.GoIdent {
 	return protogen.GoIdent{GoName: name, GoImportPath: convertImport}

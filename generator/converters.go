@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gopherex/protoc-gen-go-ogen/ogen"
 	ogengen "github.com/ogen-go/ogen/gen"
 	"github.com/ogen-go/ogen/gen/ir"
-	"github.com/yaroher/protoc-gen-ogen/ogen"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 

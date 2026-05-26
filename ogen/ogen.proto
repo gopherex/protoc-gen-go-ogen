@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/yaroher/protoc-gen-ogen/ogen";
+option go_package = "github.com/gopherex/protoc-gen-go-ogen/ogen";
 
 package ogen;
 

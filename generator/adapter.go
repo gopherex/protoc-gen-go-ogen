@@ -4,13 +4,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gopherex/protoc-gen-go-ogen/ogen"
 	ogengen "github.com/ogen-go/ogen/gen"
 	"github.com/ogen-go/ogen/gen/ir"
-	"github.com/yaroher/protoc-gen-ogen/ogen"
 	"google.golang.org/protobuf/compiler/protogen"
 )
 
-const grpcbridgeImport = protogen.GoImportPath("github.com/yaroher/protoc-gen-ogen/grpcbridge")
+const grpcbridgeImport = protogen.GoImportPath("github.com/gopherex/protoc-gen-go-ogen/grpcbridge")
 
 // opMethod links an ogen operation to the proto service/method it came from.
 type opMethod struct {

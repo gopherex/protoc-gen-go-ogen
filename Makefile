@@ -2,7 +2,7 @@ SHELL := bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 
-MODULE := github.com/yaroher/protoc-gen-ogen
+MODULE := github.com/gopherex/protoc-gen-go-ogen
 # v2+ needs semantic import versioning (/vN in the module path), unsupported
 # here — keep releases on v0/v1.
 MAX_MAJOR := 1

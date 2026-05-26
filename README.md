@@ -21,7 +21,7 @@ time (see [Streaming](#streaming)).
 ## Install
 
 ```bash
-go install github.com/yaroher/protoc-gen-ogen@latest
+go install github.com/gopherex/protoc-gen-go-ogen@latest
 ```
 
 It also runs alongside the protobuf Go plugins, so install those too:
@@ -37,14 +37,14 @@ Add this module to your project — generated code imports its runtime packages
 (`convert`, `grpcbridge`):
 
 ```bash
-go get github.com/yaroher/protoc-gen-ogen
+go get github.com/gopherex/protoc-gen-go-ogen
 ```
 
 From source instead:
 
 ```bash
-git clone https://github.com/yaroher/protoc-gen-ogen
-cd protoc-gen-ogen
+git clone https://github.com/gopherex/protoc-gen-go-ogen
+cd protoc-gen-go-ogen
 make build          # -> bin/protoc-gen-ogen, bin/protoc-gen-go, bin/protoc-gen-go-grpc
 ```
 

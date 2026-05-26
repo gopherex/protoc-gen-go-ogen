@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/yaroher/protoc-gen-ogen/ogen"
+	"github.com/gopherex/protoc-gen-go-ogen/ogen"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

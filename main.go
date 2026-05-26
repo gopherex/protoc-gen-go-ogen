@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/yaroher/protoc-gen-ogen/generator"
+	"github.com/gopherex/protoc-gen-go-ogen/generator"
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/types/pluginpb"
 )

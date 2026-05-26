@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/go-faster/yaml"
+	"github.com/gopherex/protoc-gen-go-ogen/ogen"
 	ogenlib "github.com/ogen-go/ogen"
 	ogengen "github.com/ogen-go/ogen/gen"
-	"github.com/yaroher/protoc-gen-ogen/ogen"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/compiler/protogen"
 )
