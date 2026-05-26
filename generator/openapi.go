@@ -1,0 +1,1095 @@
+package generator
+
+import (
+	"errors"
+	"fmt"
+	"path"
+	"sort"
+	"strings"
+
+	"github.com/yaroher/protoc-gen-ogen/ogen"
+	"google.golang.org/protobuf/compiler/protogen"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"gopkg.in/yaml.v3"
+)
+
+type OpenAPIGenerator struct {
+	Plugin        *protogen.Plugin
+	Settings      *PluginSettings
+	componentName map[protoreflect.FullName]string
+	errs          []error
+}
+
+func NewOpenAPIGenerator(p *protogen.Plugin, settings *PluginSettings) *OpenAPIGenerator {
+	return &OpenAPIGenerator{
+		Plugin:        p,
+		Settings:      settings,
+		componentName: map[protoreflect.FullName]string{},
+	}
+}
+
+func (g *OpenAPIGenerator) Generate() error {
+	for _, file := range g.Plugin.Files {
+		if !file.Generate {
+			continue
+		}
+		fileOpts := getFileOptions(file)
+		if fileOpts == nil || !fileOpts.GetGenerateOpenapi() {
+			continue
+		}
+		if err := g.generateFile(file, fileOpts); err != nil {
+			return fmt.Errorf("%s: %w", file.Desc.Path(), err)
+		}
+	}
+	return nil
+}
+
+func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.FileOptions) error {
+	g.componentName = map[protoreflect.FullName]string{}
+	g.errs = nil
+	g.collectComponentNames(file.Messages)
+
+	paths := g.pathsObject(file)
+	webhooks := g.webhooksObject(file)
+	if len(webhooks) > 0 && strings.HasPrefix(fileOpts.GetOpenapiVersion(), "3.0.") {
+		return fmt.Errorf("webhooks require OpenAPI 3.1; remove openapi_version override or set it to 3.1.0")
+	}
+	doc := map[string]any{
+		"openapi": openAPIVersion(fileOpts, len(webhooks) > 0),
+		"info":    g.infoObject(file, fileOpts),
+		"paths":   paths,
+	}
+	if len(webhooks) > 0 {
+		doc["webhooks"] = webhooks
+	}
+	if servers := serversObject(fileOpts.GetServers()); len(servers) > 0 {
+		doc["servers"] = servers
+	}
+	if tags := tagsObject(fileOpts.GetTags()); len(tags) > 0 {
+		doc["tags"] = tags
+	}
+	if externalDocs := externalDocsObject(fileOpts.GetExternalDocs()); len(externalDocs) > 0 {
+		doc["externalDocs"] = externalDocs
+	}
+	applyExtensions(doc, fileOpts.GetExtensions())
+
+	schemas := g.schemasObject(file.Messages)
+	if len(g.errs) > 0 {
+		return errors.Join(g.errs...)
+	}
+	if len(schemas) > 0 {
+		doc["components"] = map[string]any{
+			"schemas": schemas,
+		}
+	}
+
+	data, err := yaml.Marshal(doc)
+	if err != nil {
+		return fmt.Errorf("marshal openapi yaml: %w", err)
+	}
+	output := fileOpts.GetOpenapiOutput()
+	if output == "" {
+		output = file.GeneratedFilenamePrefix + ".openapi.yaml"
+	} else {
+		output = path.Base(output)
+	}
+	gf := g.Plugin.NewGeneratedFile(output, "")
+	_, err = gf.Write(data)
+	return err
+}
+
+func (g *OpenAPIGenerator) collectComponentNames(messages []*protogen.Message) {
+	for _, msg := range messages {
+		if msg.Desc.IsMapEntry() || messageOmitted(msg) {
+			continue
+		}
+		name := ""
+		if opts := getMessageOptions(msg); opts != nil {
+			name = opts.GetSchemaName()
+		}
+		if name == "" {
+			name = componentNameFromFullName(msg.Desc.FullName())
+		}
+		g.componentName[msg.Desc.FullName()] = uniqueComponentName(name, g.componentName)
+		g.collectComponentNames(msg.Messages)
+	}
+}
+
+func (g *OpenAPIGenerator) infoObject(file *protogen.File, opts *ogen.FileOptions) map[string]any {
+	title := opts.GetTitle()
+	if title == "" {
+		title = string(file.Desc.Package())
+		if title == "" {
+			title = path.Base(file.Desc.Path())
+		}
+	}
+	version := opts.GetVersion()
+	if version == "" {
+		version = "0.0.0"
+	}
+	info := map[string]any{
+		"title":   title,
+		"version": version,
+	}
+	setString(info, "summary", opts.GetSummary())
+	setString(info, "description", opts.GetDescription())
+	setString(info, "termsOfService", opts.GetTermsOfService())
+	if contact := contactObject(opts.GetContact()); len(contact) > 0 {
+		info["contact"] = contact
+	}
+	if license := licenseObject(opts.GetLicense()); len(license) > 0 {
+		info["license"] = license
+	}
+	return info
+}
+
+func (g *OpenAPIGenerator) pathsObject(file *protogen.File) map[string]any {
+	paths := map[string]any{}
+	for _, svc := range file.Services {
+		svcOpts := getServiceOptions(svc)
+		if svcOpts != nil && svcOpts.GetOmit() {
+			continue
+		}
+		prefix := ""
+		tags := []string{string(svc.Desc.Name())}
+		var servers []*ogen.Server
+		if svcOpts != nil {
+			prefix = svcOpts.GetPathPrefix()
+			if len(svcOpts.GetTags()) > 0 {
+				tags = svcOpts.GetTags()
+			}
+			servers = svcOpts.GetServers()
+		}
+		for _, method := range svc.Methods {
+			methodOpts := getMethodOptions(method)
+			if methodOpts == nil || methodOpts.GetOmit() || methodOpts.GetHttpMethod() == ogen.HttpMethod_HTTP_METHOD_UNSPECIFIED || methodOpts.GetPath() == "" {
+				continue
+			}
+			if methodOpts.GetWebhook().GetName() != "" {
+				continue
+			}
+			httpPath := joinHTTPPath(prefix, methodOpts.GetPath())
+			item, _ := paths[httpPath].(map[string]any)
+			if item == nil {
+				item = map[string]any{}
+				paths[httpPath] = item
+			}
+			item[httpMethodName(methodOpts.GetHttpMethod())] = g.operationObject(svc, method, tags, servers, methodOpts)
+		}
+	}
+	return paths
+}
+
+func (g *OpenAPIGenerator) webhooksObject(file *protogen.File) map[string]any {
+	webhooks := map[string]any{}
+	for _, svc := range file.Services {
+		svcOpts := getServiceOptions(svc)
+		if svcOpts != nil && svcOpts.GetOmit() {
+			continue
+		}
+		tags := []string{string(svc.Desc.Name())}
+		var servers []*ogen.Server
+		if svcOpts != nil {
+			if len(svcOpts.GetTags()) > 0 {
+				tags = svcOpts.GetTags()
+			}
+			servers = svcOpts.GetServers()
+		}
+		for _, method := range svc.Methods {
+			methodOpts := getMethodOptions(method)
+			if methodOpts == nil || methodOpts.GetOmit() || methodOpts.GetHttpMethod() == ogen.HttpMethod_HTTP_METHOD_UNSPECIFIED {
+				continue
+			}
+			name := methodOpts.GetWebhook().GetName()
+			if name == "" {
+				continue
+			}
+			for _, param := range methodOpts.GetParameters() {
+				if param.GetIn() == ogen.ParameterLocation_PARAMETER_LOCATION_PATH {
+					g.errs = append(g.errs, fmt.Errorf("webhook %q method %s cannot use path parameter %q", name, method.Desc.FullName(), param.GetFieldPath()))
+				}
+			}
+			item, _ := webhooks[name].(map[string]any)
+			if item == nil {
+				item = map[string]any{}
+				webhooks[name] = item
+			}
+			item[httpMethodName(methodOpts.GetHttpMethod())] = g.operationObject(svc, method, tags, servers, methodOpts)
+		}
+	}
+	return webhooks
+}
+
+func (g *OpenAPIGenerator) operationObject(svc *protogen.Service, method *protogen.Method, serviceTags []string, serviceServers []*ogen.Server, opts *ogen.MethodOptions) map[string]any {
+	op := map[string]any{
+		"operationId": firstNonEmpty(opts.GetOperationId(), lowerFirst(string(svc.Desc.Name()))+string(method.Desc.Name())),
+		"responses":   g.responsesObject(method, opts.GetResponses()),
+	}
+	if summary := firstNonEmpty(opts.GetSummary(), firstCommentLine(method.Comments.Leading)); summary != "" {
+		op["summary"] = summary
+	}
+	if desc := firstNonEmpty(opts.GetDescription(), comments(method.Comments.Leading)); desc != "" {
+		op["description"] = desc
+	}
+	tags := opts.GetTags()
+	if len(tags) == 0 {
+		tags = serviceTags
+	}
+	if len(tags) > 0 {
+		op["tags"] = tags
+	}
+	if opts.GetDeprecated() || method.Desc.Options().(*descriptorpb.MethodOptions).GetDeprecated() {
+		op["deprecated"] = true
+	}
+	params := g.parametersObject(method.Input, opts.GetParameters())
+	if len(params) > 0 {
+		op["parameters"] = params
+	}
+	if body := g.requestBodyObject(method.Input, opts.GetRequestBody()); len(body) > 0 {
+		op["requestBody"] = body
+	}
+	servers := opts.GetServers()
+	if len(servers) == 0 {
+		servers = serviceServers
+	}
+	if serverObjects := serversObject(servers); len(serverObjects) > 0 {
+		op["servers"] = serverObjects
+	}
+	applyExtensions(op, opts.GetExtensions())
+	if _, ok := op["x-ogen-operation-group"]; !ok {
+		if group := defaultOperationGroup(svc, tags); group != "" {
+			op["x-ogen-operation-group"] = group
+		}
+	}
+	return op
+}
+
+func (g *OpenAPIGenerator) parametersObject(input *protogen.Message, bindings []*ogen.ParameterBinding) []any {
+	out := make([]any, 0, len(bindings))
+	for _, binding := range bindings {
+		field := findField(input, binding.GetFieldPath())
+		name := binding.GetName()
+		if name == "" && field != nil {
+			name = jsonName(field)
+		}
+		if name == "" {
+			name = binding.GetFieldPath()
+		}
+		param := map[string]any{
+			"name":   name,
+			"in":     parameterLocationName(binding.GetIn()),
+			"schema": g.parameterSchema(field, binding.GetSchema()),
+		}
+		if binding.GetIn() == ogen.ParameterLocation_PARAMETER_LOCATION_PATH {
+			param["required"] = true
+		} else if binding.Required != nil {
+			param["required"] = binding.GetRequired()
+		}
+		setString(param, "description", binding.GetDescription())
+		setString(param, "style", binding.GetStyle())
+		if binding.Explode != nil {
+			param["explode"] = binding.GetExplode()
+		}
+		out = append(out, param)
+	}
+	return out
+}
+
+func (g *OpenAPIGenerator) parameterSchema(field *protogen.Field, override *ogen.SchemaOptions) map[string]any {
+	if field == nil {
+		schema := map[string]any{"type": "string"}
+		applySchemaOptions(schema, override)
+		return schema
+	}
+	schema := g.schemaForField(field)
+	applySchemaOptions(schema, override)
+	return schema
+}
+
+func (g *OpenAPIGenerator) requestBodyObject(input *protogen.Message, body *ogen.RequestBody) map[string]any {
+	if body == nil {
+		return nil
+	}
+	schema := g.messageOrFieldSchema(input, body.GetFieldPath())
+	media := map[string]any{
+		"schema": schema,
+	}
+	applyExtensions(media, body.GetMediaExtensions())
+	req := map[string]any{
+		"content": map[string]any{
+			firstNonEmpty(body.GetContentType(), "application/json"): media,
+		},
+	}
+	setString(req, "description", body.GetDescription())
+	if body.GetRequired() {
+		req["required"] = true
+	}
+	applyExtensions(req, body.GetExtensions())
+	return req
+}
+
+func (g *OpenAPIGenerator) responsesObject(method *protogen.Method, responses []*ogen.Response) map[string]any {
+	if len(responses) == 0 {
+		responses = []*ogen.Response{{
+			Status:      200,
+			Description: "OK",
+		}}
+	}
+	out := map[string]any{}
+	for _, response := range responses {
+		status := response.GetStatus()
+		res := map[string]any{
+			"description": firstNonEmpty(response.GetDescription(), defaultStatusDescription(status)),
+		}
+		if content := g.responseContent(method.Output, response); len(content) > 0 {
+			res["content"] = content
+		}
+		if headers := headersObject(response.GetHeaders()); len(headers) > 0 {
+			res["headers"] = headers
+		}
+		key := "default"
+		if status != 0 {
+			key = fmt.Sprintf("%d", status)
+		}
+		out[key] = res
+	}
+	return out
+}
+
+func (g *OpenAPIGenerator) responseContent(output *protogen.Message, response *ogen.Response) map[string]any {
+	var schema map[string]any
+	switch {
+	case response.GetSchema().GetRef() != "":
+		schema = map[string]any{"$ref": response.GetSchema().GetRef()}
+	case response.GetFieldPath() != "":
+		schema = g.messageOrFieldSchema(output, response.GetFieldPath())
+	case isEmptyMessage(output):
+		return nil
+	default:
+		schema = g.schemaForMessage(output)
+	}
+	return map[string]any{
+		firstNonEmpty(response.GetContentType(), "application/json"): map[string]any{
+			"schema": schema,
+		},
+	}
+}
+
+func (g *OpenAPIGenerator) messageOrFieldSchema(msg *protogen.Message, fieldPath string) map[string]any {
+	if fieldPath == "" {
+		return g.schemaForMessage(msg)
+	}
+	if field := findField(msg, fieldPath); field != nil {
+		return g.schemaForField(field)
+	}
+	return g.schemaForMessage(msg)
+}
+
+func (g *OpenAPIGenerator) schemasObject(messages []*protogen.Message) map[string]any {
+	schemas := map[string]any{}
+	for _, msg := range messages {
+		g.appendSchemas(schemas, msg)
+	}
+	return schemas
+}
+
+func (g *OpenAPIGenerator) appendSchemas(schemas map[string]any, msg *protogen.Message) {
+	if msg.Desc.IsMapEntry() || messageOmitted(msg) {
+		return
+	}
+	if name := g.componentName[msg.Desc.FullName()]; name != "" {
+		schemas[name] = g.objectSchema(msg)
+	}
+	for _, nested := range msg.Messages {
+		g.appendSchemas(schemas, nested)
+	}
+}
+
+func (g *OpenAPIGenerator) objectSchema(msg *protogen.Message) map[string]any {
+	schema := map[string]any{
+		"type":       "object",
+		"properties": map[string]any{},
+	}
+	required := []string{}
+	if opts := getMessageOptions(msg); opts != nil {
+		applySchemaOptions(schema, opts.GetSchema())
+		if opts.AdditionalProperties != nil {
+			if opts.GetAdditionalProperties() {
+				if ref := opts.GetAdditionalPropertiesSchema().GetRef(); ref != "" {
+					schema["additionalProperties"] = map[string]any{"$ref": ref}
+				} else {
+					schema["additionalProperties"] = true
+				}
+			} else {
+				schema["additionalProperties"] = false
+			}
+		} else {
+			schema["additionalProperties"] = false
+		}
+		if opts.GetDiscriminatorProperty() != "" {
+			schema["discriminator"] = discriminatorObject(opts.GetDiscriminatorProperty(), opts.GetDiscriminatorMapping())
+		}
+		applyExtensions(schema, opts.GetExtensions())
+	} else {
+		schema["additionalProperties"] = false
+	}
+	properties := schema["properties"].(map[string]any)
+	ogenProperties := map[string]any{}
+	for _, field := range msg.Fields {
+		if fieldOmitted(field) || field.Oneof != nil && !field.Oneof.Desc.IsSynthetic() {
+			continue
+		}
+		name := fieldOpenAPIName(field)
+		properties[name] = g.schemaForField(field)
+		if opts := getFieldOptions(field); opts != nil && opts.GetGoName() != "" {
+			ogenProperties[name] = map[string]any{"name": opts.GetGoName()}
+		}
+		if fieldRequired(field) {
+			required = append(required, name)
+		}
+	}
+	if len(ogenProperties) > 0 {
+		schema["x-ogen-properties"] = ogenProperties
+	}
+	for _, oneof := range msg.Oneofs {
+		if oneof.Desc.IsSynthetic() {
+			continue
+		}
+		name := string(oneof.Desc.Name())
+		properties[name] = g.schemaForOneof(oneof)
+	}
+	if len(required) > 0 {
+		sort.Strings(required)
+		schema["required"] = required
+	}
+	return schema
+}
+
+func (g *OpenAPIGenerator) schemaForField(field *protogen.Field) map[string]any {
+	var schema map[string]any
+	if field.Desc.IsMap() {
+		value := field.Message.Fields[1]
+		schema = map[string]any{
+			"type":                 "object",
+			"additionalProperties": g.schemaForField(value),
+		}
+	} else if field.Desc.IsList() {
+		items := g.schemaForSingularField(field)
+		if opts := getFieldOptions(field); opts != nil && field.Desc.Kind() == protoreflect.BytesKind {
+			applySchemaOptions(items, opts.GetSchema())
+		}
+		schema = map[string]any{
+			"type":  "array",
+			"items": items,
+		}
+	} else {
+		schema = g.schemaForSingularField(field)
+	}
+	if opts := getFieldOptions(field); opts != nil {
+		applySchemaOptions(schema, opts.GetSchema())
+		applyExtensions(schema, opts.GetExtensions())
+	}
+	return schema
+}
+
+func (g *OpenAPIGenerator) schemaForSingularField(field *protogen.Field) map[string]any {
+	switch field.Desc.Kind() {
+	case protoreflect.DoubleKind:
+		return map[string]any{"type": "number", "format": "double"}
+	case protoreflect.FloatKind:
+		return map[string]any{"type": "number", "format": "float"}
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		return map[string]any{"type": "integer", "format": "int32"}
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return map[string]any{"type": "integer", "format": "int64"}
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		return map[string]any{"type": "integer", "format": "int32", "minimum": 0}
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return map[string]any{"type": "integer", "format": "int64", "minimum": 0}
+	case protoreflect.BoolKind:
+		return map[string]any{"type": "boolean"}
+	case protoreflect.StringKind:
+		return map[string]any{"type": "string"}
+	case protoreflect.BytesKind:
+		return map[string]any{"type": "string", "format": "byte"}
+	case protoreflect.EnumKind:
+		return enumSchema(field)
+	case protoreflect.MessageKind, protoreflect.GroupKind:
+		return g.schemaForMessage(field.Message)
+	default:
+		return map[string]any{}
+	}
+}
+
+func (g *OpenAPIGenerator) schemaForMessage(msg *protogen.Message) map[string]any {
+	if msg == nil {
+		return map[string]any{}
+	}
+	if schema := wellKnownSchema(msg.Desc.FullName()); schema != nil {
+		return schema
+	}
+	if name := g.componentName[msg.Desc.FullName()]; name != "" {
+		return map[string]any{"$ref": "#/components/schemas/" + name}
+	}
+	return g.objectSchema(msg)
+}
+
+func (g *OpenAPIGenerator) schemaForOneof(oneof *protogen.Oneof) map[string]any {
+	var variants []any
+	for _, field := range oneof.Fields {
+		variants = append(variants, g.schemaForSingularField(field))
+	}
+	schema := map[string]any{"oneOf": variants}
+	if opts := getOneofOptions(oneof); opts != nil {
+		if opts.GetSchemaMode() == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ANY_OF {
+			delete(schema, "oneOf")
+			schema["anyOf"] = variants
+		}
+		applySchemaOptions(schema, opts.GetSchema())
+		if opts.GetDiscriminatorProperty() != "" {
+			if !allOneOfVariantsAreRefs(variants) {
+				g.errs = append(g.errs, fmt.Errorf(
+					"oneof %s sets discriminator_property=%q, but not all variants are message refs; remove discriminator_property or wrap scalar variants in messages",
+					oneof.Desc.FullName(),
+					opts.GetDiscriminatorProperty(),
+				))
+			} else {
+				schema["discriminator"] = discriminatorObject(opts.GetDiscriminatorProperty(), opts.GetDiscriminatorMapping())
+			}
+		}
+	}
+	return schema
+}
+
+func getFileOptions(file *protogen.File) *ogen.FileOptions {
+	if opts, ok := file.Desc.Options().(*descriptorpb.FileOptions); ok && proto.HasExtension(opts, ogen.E_File) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_File).(*ogen.FileOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func getMessageOptions(msg *protogen.Message) *ogen.MessageOptions {
+	if opts, ok := msg.Desc.Options().(*descriptorpb.MessageOptions); ok && proto.HasExtension(opts, ogen.E_Message) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_Message).(*ogen.MessageOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func getFieldOptions(field *protogen.Field) *ogen.FieldOptions {
+	if opts, ok := field.Desc.Options().(*descriptorpb.FieldOptions); ok && proto.HasExtension(opts, ogen.E_Field) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_Field).(*ogen.FieldOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func getOneofOptions(oneof *protogen.Oneof) *ogen.OneofOptions {
+	if opts, ok := oneof.Desc.Options().(*descriptorpb.OneofOptions); ok && proto.HasExtension(opts, ogen.E_Oneof) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_Oneof).(*ogen.OneofOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func getServiceOptions(svc *protogen.Service) *ogen.ServiceOptions {
+	if opts, ok := svc.Desc.Options().(*descriptorpb.ServiceOptions); ok && proto.HasExtension(opts, ogen.E_Service) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_Service).(*ogen.ServiceOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func getMethodOptions(method *protogen.Method) *ogen.MethodOptions {
+	if opts, ok := method.Desc.Options().(*descriptorpb.MethodOptions); ok && proto.HasExtension(opts, ogen.E_Method) {
+		if ext, ok := proto.GetExtension(opts, ogen.E_Method).(*ogen.MethodOptions); ok {
+			return ext
+		}
+	}
+	return nil
+}
+
+func openAPIVersion(opts *ogen.FileOptions, hasWebhooks bool) string {
+	if opts.GetOpenapiVersion() != "" {
+		return opts.GetOpenapiVersion()
+	}
+	if hasWebhooks {
+		return "3.1.0"
+	}
+	return "3.0.3"
+}
+
+func componentNameFromFullName(name protoreflect.FullName) string {
+	parts := strings.Split(string(name), ".")
+	if len(parts) == 0 {
+		return string(name)
+	}
+	return parts[len(parts)-1]
+}
+
+func uniqueComponentName(name string, existing map[protoreflect.FullName]string) string {
+	used := map[string]bool{}
+	for _, value := range existing {
+		used[value] = true
+	}
+	if !used[name] {
+		return name
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s%d", name, i)
+		if !used[candidate] {
+			return candidate
+		}
+	}
+}
+
+func messageOmitted(msg *protogen.Message) bool {
+	opts := getMessageOptions(msg)
+	return opts != nil && opts.GetOmit()
+}
+
+func fieldOmitted(field *protogen.Field) bool {
+	opts := getFieldOptions(field)
+	return opts != nil && opts.GetOmit()
+}
+
+func fieldRequired(field *protogen.Field) bool {
+	opts := getFieldOptions(field)
+	return opts != nil && opts.Required != nil && opts.GetRequired()
+}
+
+func fieldOpenAPIName(field *protogen.Field) string {
+	if opts := getFieldOptions(field); opts != nil && opts.GetName() != "" {
+		return opts.GetName()
+	}
+	return jsonName(field)
+}
+
+func jsonName(field *protogen.Field) string {
+	if name := field.Desc.JSONName(); name != "" {
+		return name
+	}
+	return string(field.Desc.Name())
+}
+
+func findField(msg *protogen.Message, fieldPath string) *protogen.Field {
+	if msg == nil || fieldPath == "" {
+		return nil
+	}
+	current := msg
+	var found *protogen.Field
+	for _, part := range strings.Split(fieldPath, ".") {
+		found = nil
+		for _, field := range current.Fields {
+			if string(field.Desc.Name()) == part || field.Desc.JSONName() == part || fieldOpenAPIName(field) == part {
+				found = field
+				break
+			}
+		}
+		if found == nil {
+			return nil
+		}
+		if found.Message != nil {
+			current = found.Message
+		}
+	}
+	return found
+}
+
+func enumSchema(field *protogen.Field) map[string]any {
+	opts := getFieldOptions(field)
+	asString := opts != nil && opts.GetEnumAsString()
+	if asString {
+		values := make([]string, 0, len(field.Enum.Values))
+		for _, value := range field.Enum.Values {
+			values = append(values, string(value.Desc.Name()))
+		}
+		return map[string]any{"type": "string", "enum": values}
+	}
+	values := make([]int32, 0, len(field.Enum.Values))
+	for _, value := range field.Enum.Values {
+		values = append(values, int32(value.Desc.Number()))
+	}
+	return map[string]any{"type": "integer", "format": "int32", "enum": values}
+}
+
+func wellKnownSchema(name protoreflect.FullName) map[string]any {
+	switch name {
+	case "google.protobuf.Timestamp":
+		return map[string]any{"type": "string", "format": "date-time"}
+	case "google.protobuf.Duration":
+		return map[string]any{"type": "string", "format": "duration"}
+	case "google.protobuf.StringValue":
+		return map[string]any{"type": "string", "nullable": true}
+	case "google.protobuf.Int32Value":
+		return map[string]any{"type": "integer", "format": "int32", "nullable": true}
+	case "google.protobuf.Int64Value":
+		return map[string]any{"type": "integer", "format": "int64", "nullable": true}
+	case "google.protobuf.UInt32Value":
+		return map[string]any{"type": "integer", "format": "int32", "minimum": 0, "nullable": true}
+	case "google.protobuf.UInt64Value":
+		return map[string]any{"type": "integer", "format": "int64", "minimum": 0, "nullable": true}
+	case "google.protobuf.FloatValue":
+		return map[string]any{"type": "number", "format": "float", "nullable": true}
+	case "google.protobuf.DoubleValue":
+		return map[string]any{"type": "number", "format": "double", "nullable": true}
+	case "google.protobuf.BoolValue":
+		return map[string]any{"type": "boolean", "nullable": true}
+	case "google.protobuf.BytesValue":
+		return map[string]any{"type": "string", "format": "byte", "nullable": true}
+	case "google.protobuf.Empty":
+		return map[string]any{"type": "object", "additionalProperties": false}
+	case "google.protobuf.Struct", "google.protobuf.Any":
+		return map[string]any{"type": "object", "additionalProperties": true}
+	case "google.protobuf.Value":
+		return map[string]any{}
+	case "google.protobuf.ListValue":
+		return map[string]any{"type": "array", "items": map[string]any{}}
+	default:
+		return nil
+	}
+}
+
+func applySchemaOptions(schema map[string]any, opts *ogen.SchemaOptions) {
+	if opts == nil {
+		return
+	}
+	setString(schema, "title", opts.GetTitle())
+	setString(schema, "description", opts.GetDescription())
+	if opts.GetDefaultJson() != "" {
+		schema["default"] = yamlRaw(opts.GetDefaultJson())
+	}
+	if len(opts.GetExamplesJson()) > 0 {
+		examples := make([]any, 0, len(opts.GetExamplesJson()))
+		for _, example := range opts.GetExamplesJson() {
+			examples = append(examples, yamlRaw(example))
+		}
+		schema["examples"] = examples
+	}
+	if len(opts.GetEnumJson()) > 0 {
+		values := make([]any, 0, len(opts.GetEnumJson()))
+		for _, value := range opts.GetEnumJson() {
+			values = append(values, yamlRaw(value))
+		}
+		schema["enum"] = values
+	}
+	if format := schemaFormat(opts); format != "" {
+		schema["format"] = format
+	}
+	if opts.Nullable != nil {
+		schema["nullable"] = opts.GetNullable()
+	}
+	if opts.ReadOnly != nil {
+		schema["readOnly"] = opts.GetReadOnly()
+	}
+	if opts.WriteOnly != nil {
+		schema["writeOnly"] = opts.GetWriteOnly()
+	}
+	applyExtensions(schema, opts.GetExtensions())
+}
+
+func schemaFormat(opts *ogen.SchemaOptions) string {
+	if opts.GetCustomFormat() != "" {
+		return opts.GetCustomFormat()
+	}
+	switch opts.GetStringFormat() {
+	case ogen.StringFormat_STRING_FORMAT_BYTE:
+		return "byte"
+	case ogen.StringFormat_STRING_FORMAT_BINARY:
+		return "binary"
+	case ogen.StringFormat_STRING_FORMAT_DATE:
+		return "date"
+	case ogen.StringFormat_STRING_FORMAT_DATE_TIME:
+		return "date-time"
+	case ogen.StringFormat_STRING_FORMAT_TIME:
+		return "time"
+	case ogen.StringFormat_STRING_FORMAT_DURATION:
+		return "duration"
+	case ogen.StringFormat_STRING_FORMAT_UUID:
+		return "uuid"
+	case ogen.StringFormat_STRING_FORMAT_IP:
+		return "ip"
+	case ogen.StringFormat_STRING_FORMAT_IPV4:
+		return "ipv4"
+	case ogen.StringFormat_STRING_FORMAT_IPV6:
+		return "ipv6"
+	case ogen.StringFormat_STRING_FORMAT_URI:
+		return "uri"
+	case ogen.StringFormat_STRING_FORMAT_EMAIL:
+		return "email"
+	case ogen.StringFormat_STRING_FORMAT_HOSTNAME:
+		return "hostname"
+	case ogen.StringFormat_STRING_FORMAT_UNIX:
+		return "unix"
+	case ogen.StringFormat_STRING_FORMAT_UNIX_SECONDS:
+		return "unix-seconds"
+	case ogen.StringFormat_STRING_FORMAT_UNIX_MILLI:
+		return "unix-milli"
+	case ogen.StringFormat_STRING_FORMAT_UNIX_MICRO:
+		return "unix-micro"
+	case ogen.StringFormat_STRING_FORMAT_UNIX_NANO:
+		return "unix-nano"
+	case ogen.StringFormat_STRING_FORMAT_INT32:
+		return "int32"
+	case ogen.StringFormat_STRING_FORMAT_INT64:
+		return "int64"
+	default:
+		return ""
+	}
+}
+
+func yamlRaw(raw string) any {
+	var out any
+	if err := yaml.Unmarshal([]byte(raw), &out); err != nil {
+		return raw
+	}
+	return out
+}
+
+func discriminatorObject(property string, mapping []*ogen.NamedString) map[string]any {
+	out := map[string]any{"propertyName": property}
+	if len(mapping) > 0 {
+		values := map[string]any{}
+		for _, item := range mapping {
+			values[item.GetName()] = item.GetValue()
+		}
+		out["mapping"] = values
+	}
+	return out
+}
+
+func allOneOfVariantsAreRefs(variants []any) bool {
+	if len(variants) == 0 {
+		return false
+	}
+	for _, variant := range variants {
+		schema, ok := variant.(map[string]any)
+		if !ok {
+			return false
+		}
+		if _, ok := schema["$ref"]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func serversObject(servers []*ogen.Server) []any {
+	out := make([]any, 0, len(servers))
+	for _, server := range servers {
+		item := map[string]any{"url": server.GetUrl()}
+		setString(item, "description", server.GetDescription())
+		applyExtensions(item, server.GetExtensions())
+		out = append(out, item)
+	}
+	return out
+}
+
+func tagsObject(tags []*ogen.Tag) []any {
+	out := make([]any, 0, len(tags))
+	for _, tag := range tags {
+		item := map[string]any{"name": tag.GetName()}
+		setString(item, "description", tag.GetDescription())
+		if externalDocs := externalDocsObject(tag.GetExternalDocs()); len(externalDocs) > 0 {
+			item["externalDocs"] = externalDocs
+		}
+		out = append(out, item)
+	}
+	return out
+}
+
+func contactObject(contact *ogen.Contact) map[string]any {
+	if contact == nil {
+		return nil
+	}
+	out := map[string]any{}
+	setString(out, "name", contact.GetName())
+	setString(out, "url", contact.GetUrl())
+	setString(out, "email", contact.GetEmail())
+	return out
+}
+
+func licenseObject(license *ogen.License) map[string]any {
+	if license == nil {
+		return nil
+	}
+	out := map[string]any{}
+	setString(out, "name", license.GetName())
+	setString(out, "url", license.GetUrl())
+	return out
+}
+
+func externalDocsObject(docs *ogen.ExternalDocs) map[string]any {
+	if docs == nil {
+		return nil
+	}
+	out := map[string]any{}
+	setString(out, "url", docs.GetUrl())
+	setString(out, "description", docs.GetDescription())
+	return out
+}
+
+func headersObject(headers []*ogen.NamedString) map[string]any {
+	out := map[string]any{}
+	for _, header := range headers {
+		out[header.GetName()] = map[string]any{
+			"schema": map[string]any{"type": "string"},
+		}
+		if header.GetValue() != "" {
+			out[header.GetName()].(map[string]any)["description"] = header.GetValue()
+		}
+	}
+	return out
+}
+
+func applyExtensions(target map[string]any, extensions []*ogen.NamedString) {
+	for _, ext := range extensions {
+		if strings.HasPrefix(ext.GetName(), "x-") {
+			target[ext.GetName()] = yamlRaw(ext.GetValue())
+		}
+	}
+}
+
+func setString(target map[string]any, key, value string) {
+	if value != "" {
+		target[key] = value
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func comments(c protogen.Comments) string {
+	return strings.TrimSpace(string(c))
+}
+
+func firstCommentLine(c protogen.Comments) string {
+	text := comments(c)
+	if text == "" {
+		return ""
+	}
+	return strings.Split(text, "\n")[0]
+}
+
+func lowerFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+func joinHTTPPath(prefix, p string) string {
+	if prefix == "" {
+		return p
+	}
+	return "/" + strings.Trim(strings.TrimRight(prefix, "/")+"/"+strings.TrimLeft(p, "/"), "/")
+}
+
+func httpMethodName(method ogen.HttpMethod) string {
+	switch method {
+	case ogen.HttpMethod_HTTP_METHOD_GET:
+		return "get"
+	case ogen.HttpMethod_HTTP_METHOD_POST:
+		return "post"
+	case ogen.HttpMethod_HTTP_METHOD_PUT:
+		return "put"
+	case ogen.HttpMethod_HTTP_METHOD_PATCH:
+		return "patch"
+	case ogen.HttpMethod_HTTP_METHOD_DELETE:
+		return "delete"
+	case ogen.HttpMethod_HTTP_METHOD_HEAD:
+		return "head"
+	case ogen.HttpMethod_HTTP_METHOD_OPTIONS:
+		return "options"
+	case ogen.HttpMethod_HTTP_METHOD_TRACE:
+		return "trace"
+	default:
+		return "get"
+	}
+}
+
+func parameterLocationName(location ogen.ParameterLocation) string {
+	switch location {
+	case ogen.ParameterLocation_PARAMETER_LOCATION_PATH:
+		return "path"
+	case ogen.ParameterLocation_PARAMETER_LOCATION_QUERY:
+		return "query"
+	case ogen.ParameterLocation_PARAMETER_LOCATION_HEADER:
+		return "header"
+	case ogen.ParameterLocation_PARAMETER_LOCATION_COOKIE:
+		return "cookie"
+	default:
+		return "query"
+	}
+}
+
+func defaultStatusDescription(status uint32) string {
+	switch status {
+	case 0:
+		return "Default response"
+	case 200:
+		return "OK"
+	case 201:
+		return "Created"
+	case 204:
+		return "No Content"
+	case 400:
+		return "Bad Request"
+	case 401:
+		return "Unauthorized"
+	case 403:
+		return "Forbidden"
+	case 404:
+		return "Not Found"
+	default:
+		return fmt.Sprintf("HTTP %d", status)
+	}
+}
+
+func isEmptyMessage(msg *protogen.Message) bool {
+	return msg == nil || msg.Desc.FullName() == "google.protobuf.Empty"
+}
+
+func defaultOperationGroup(svc *protogen.Service, tags []string) string {
+	if len(tags) > 0 && tags[0] != "" {
+		return pascalIdentifier(tags[0])
+	}
+	name := string(svc.Desc.Name())
+	name = strings.TrimSuffix(name, "API")
+	name = strings.TrimSuffix(name, "Service")
+	return pascalIdentifier(name)
+}
+
+func pascalIdentifier(value string) string {
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == '-' || r == '_' || r == ' ' || r == '.' || r == '/'
+	})
+	var b strings.Builder
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]))
+		if len(part) > 1 {
+			b.WriteString(part[1:])
+		}
+	}
+	if b.Len() == 0 {
+		return ""
+	}
+	return b.String()
+}

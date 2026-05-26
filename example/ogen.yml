@@ -1,0 +1,98 @@
+# Full ogen config surface for github.com/ogen-go/ogen v1.20.3.
+# ogen uses yaml.Decoder.KnownFields(true), so unknown keys fail generation.
+#
+# Source structs:
+#   gen.Options
+#   gen.ParseOptions
+#   gen.GenerateOptions
+#   gen.FeatureOptions
+#   gen.Filters
+
+# Optional path to write the expanded OpenAPI spec.
+# Empty means "do not write expanded spec".
+expand: ""
+
+parser:
+  # Infer missing schema types from schema shape.
+  infer_types: false
+
+  # Allow resolving remote $ref values.
+  allow_remote: false
+
+  # Maximum recursive schema generation depth. ogen default is 1000.
+  depth_limit: 1000
+
+  # Allowed HTTP Authorization schemes for Security Scheme Object parsing.
+  # Empty means ogen uses its built-in IANA scheme list.
+  authentication_schemes: []
+
+  # Interpret cross-type constraints when true.
+  # Example: pattern on number or maximum on string.
+  allow_cross_type_constraints: true
+
+  # Reject duplicate normalized paths even when HTTP methods differ.
+  disallow_duplicate_method_paths: false
+
+generator:
+  features:
+    # If true, disables all default features before applying enable.
+    disable_all: false
+
+    # Available feature names:
+    #   paths/client
+    #   paths/server
+    #   webhooks/client
+    #   webhooks/server
+    #   client/security/reentrant
+    #   client/request/options
+    #   client/request/validation
+    #   client/editors
+    #   server/response/validation
+    #   ogen/otel
+    #   ogen/unimplemented
+    #   debug/example_tests
+    enable:
+      - paths/client
+      - paths/server
+      - webhooks/client
+      - webhooks/server
+      - client/security/reentrant
+      - client/request/options
+      - client/request/validation
+      - server/response/validation
+      - ogen/otel
+      - ogen/unimplemented
+      - debug/example_tests
+
+    # ogen v1.20.3 generates webhook clients with calls to client editor hooks,
+    # but does not add those hooks to WebhookClient itself. Keep webhook
+    # generation enabled and disable only this incompatible feature.
+    disable:
+      - client/editors
+
+  # Generate only operations matching this filter.
+  # Empty path_regex matches all paths; empty methods means all methods.
+  filters:
+    path_regex: ""
+    methods: []
+
+  # ErrNotImplemented feature names to ignore.
+  # Typical values: ["enum format"], ["all"].
+  ignore_not_implemented: []
+
+  # Convenient errors mode: "auto", "on"/"true", or "off"/"false".
+  convenient_errors: "auto"
+
+  # Map non-standard content types to supported ogen encodings.
+  # Supported encodings:
+  #   application/json
+  #   application/problem+json
+  #   application/x-www-form-urlencoded
+  #   multipart/form-data
+  #   application/octet-stream
+  #   text/plain
+  content_type_aliases: {}
+
+  # Default encoding for wildcard content types such as */* or application/*.
+  # Empty means wildcard content types are unsupported unless aliased above.
+  wildcard_content_type_default: ""

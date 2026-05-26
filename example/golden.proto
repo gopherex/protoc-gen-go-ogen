@@ -1,0 +1,836 @@
+syntax = "proto3";
+
+package example.golden;
+
+option go_package = "github.com/yaroher/protoc-gen-ogen/example/golden;golden";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "ogen/ogen.proto";
+
+option (ogen.file) = {
+  generate_openapi: true
+  generate_ogen: true
+  generate_converters: true
+  title: "Golden Example API"
+  version: "1.0.0"
+  description: "Golden fixture for protoc-gen-ogen options."
+  servers: {
+    url: "https://api.example.com"
+    description: "Production"
+    extensions: {
+      name: "x-ogen-server-name"
+      value: "\"production\""
+    }
+  }
+  tags: {
+    name: "users"
+    description: "User operations"
+  }
+  tags: {
+    name: "coverage"
+    description: "Schema coverage operations"
+  }
+  tags: {
+    name: "webhooks"
+    description: "Webhook callback operations"
+  }
+  openapi_output: "example/gen/openapi.yaml"
+  ogen_target: "example/gen/ogen"
+  ogen_package: "github.com/yaroher/protoc-gen-ogen/example/gen/ogen"
+  converters_package: "github.com/yaroher/protoc-gen-ogen/example/gen/converters"
+};
+
+service UserAPI {
+  option (ogen.service) = {
+    path_prefix: "/v1"
+    tags: "users"
+    description: "User API surface."
+  };
+
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_GET
+      path: "/users/{id}"
+      operation_id: "getUser"
+      summary: "Get user"
+      parameters: {
+        field_path: "id"
+        in: PARAMETER_LOCATION_PATH
+        required: true
+      }
+      parameters: {
+        field_path: "request_id"
+        in: PARAMETER_LOCATION_HEADER
+        name: "X-Request-ID"
+        schema: {
+          string_format: STRING_FORMAT_UUID
+        }
+      }
+      responses: {
+        status: 200
+        description: "User found."
+        field_path: "user"
+      }
+      responses: {
+        status: 404
+        description: "User not found."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_GET
+      path: "/users"
+      operation_id: "listUsers"
+      summary: "List users"
+      parameters: {
+        field_path: "page_size"
+        in: PARAMETER_LOCATION_QUERY
+        name: "pageSize"
+      }
+      parameters: {
+        field_path: "page_token"
+        in: PARAMETER_LOCATION_QUERY
+        name: "pageToken"
+      }
+      parameters: {
+        field_path: "filters"
+        in: PARAMETER_LOCATION_QUERY
+        style: "deepObject"
+        explode: true
+      }
+      responses: {
+        status: 200
+        description: "Users page."
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_POST
+      path: "/users"
+      operation_id: "createUser"
+      summary: "Create user"
+      request_body: {
+        required: true
+        field_path: "user"
+      }
+      responses: {
+        status: 201
+        description: "User created."
+        field_path: "user"
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_DELETE
+      path: "/users/{id}"
+      operation_id: "deleteUser"
+      summary: "Delete user"
+      parameters: {
+        field_path: "id"
+        in: PARAMETER_LOCATION_PATH
+        required: true
+      }
+      responses: {
+        status: 204
+        description: "User deleted."
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+}
+
+service CoverageAPI {
+  option (ogen.service) = {
+    path_prefix: "/v1"
+    tags: "coverage"
+    description: "Schema coverage API surface."
+  };
+
+  rpc EchoCoverage(EchoCoverageRequest) returns (EchoCoverageResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_POST
+      path: "/coverage/echo"
+      operation_id: "echoCoverage"
+      summary: "Echo schema coverage payload"
+      request_body: {
+        required: true
+        media_extensions: {
+          name: "x-ogen-json-streaming"
+          value: "true"
+        }
+      }
+      responses: {
+        status: 200
+        description: "Echoed schema coverage payload."
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+}
+
+service UploadAPI {
+  option (ogen.service) = {
+    path_prefix: "/v1"
+    tags: "uploads"
+    description: "File upload API surface."
+  };
+
+  rpc UploadAvatar(UploadAvatarRequest) returns (google.protobuf.Empty) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_POST
+      path: "/avatar"
+      operation_id: "uploadAvatar"
+      summary: "Upload avatar"
+      request_body: {
+        required: true
+        content_type: "image/png"
+        field_path: "data"
+      }
+      responses: {
+        status: 200
+        description: "OK"
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+
+  rpc CreatePost(CreatePostRequest) returns (google.protobuf.Empty) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_POST
+      path: "/posts"
+      operation_id: "createPost"
+      summary: "Create post with files"
+      request_body: {
+        required: true
+        content_type: "multipart/form-data"
+      }
+      responses: {
+        status: 200
+        description: "OK"
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+}
+
+service WebhookAPI {
+  option (ogen.service) = {
+    tags: "webhooks"
+    description: "Webhook callback API surface."
+  };
+
+  rpc UserChanged(UserChangedEvent) returns (google.protobuf.Empty) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_POST
+      operation_id: "userChangedWebhook"
+      summary: "Receive user change webhook"
+      webhook: {
+        name: "userChanged"
+      }
+      parameters: {
+        field_path: "delivery_id"
+        in: PARAMETER_LOCATION_HEADER
+        name: "X-Webhook-Delivery"
+        required: true
+        schema: {
+          string_format: STRING_FORMAT_UUID
+        }
+      }
+      request_body: {
+        required: true
+        field_path: "event"
+      }
+      responses: {
+        status: 204
+        description: "Webhook accepted."
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
+}
+
+// OpenAPI: component schema GetUserRequest is normally used only as operation
+// input. Method binding maps id to path parameter "id" and request_id to
+// header parameter "X-Request-ID".
+// Ogen: id -> string, request_id -> optional string/OptString with uuid format.
+// Converters: copy id directly; convert absent request_id to unset ogen option.
+message GetUserRequest {
+  string id = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_UUID
+      }
+    }
+  ];
+
+  optional string request_id = 2 [
+    (ogen.field) = {
+      name: "requestId"
+      schema: {
+        nullable: true
+        string_format: STRING_FORMAT_UUID
+      }
+    }
+  ];
+}
+
+// OpenAPI: 200 response body is field "user", so this wrapper message should
+// not leak into the response schema unless implementation chooses to expose it.
+// Ogen: response type should contain the generated User schema/type.
+// Converters: GetUserResponse.User <-> ogen User.
+message GetUserResponse {
+  User user = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: page_size/page_token are query parameters with explicit JSON names;
+// filters is a deepObject query parameter.
+// Ogen: page_size -> int32, page_token -> string, filters -> map[string]string.
+// Converters: direct scalar copies and map allocation/copy both directions.
+message ListUsersRequest {
+  int32 page_size = 1 [
+    (ogen.field) = {
+      name: "pageSize"
+    }
+  ];
+
+  string page_token = 2 [
+    (ogen.field) = {
+      name: "pageToken"
+    }
+  ];
+
+  map<string, string> filters = 3;
+}
+
+// OpenAPI: whole message is default 200 response body for ListUsers.
+// Ogen: users -> []User, nextPageToken -> string/optional according to schema.
+// Converters: allocate slice and convert each User element.
+message ListUsersResponse {
+  repeated User users = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+
+  string next_page_token = 2 [
+    (ogen.field) = {
+      name: "nextPageToken"
+    }
+  ];
+}
+
+// OpenAPI: CreateUser request body is field "user", not the wrapper object.
+// Ogen: request body schema is UserInput.
+// Converters: CreateUserRequest.User <-> ogen UserInput.
+message CreateUserRequest {
+  UserInput user = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: 201 response body is field "user".
+// Ogen: response body schema is User.
+// Converters: CreateUserResponse.User <-> ogen User.
+message CreateUserResponse {
+  User user = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: id is required path parameter with string uuid format.
+// Ogen: id -> string.
+// Converters: direct copy.
+message DeleteUserRequest {
+  string id = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_UUID
+      }
+    }
+  ];
+}
+
+// OpenAPI: component schema UserInput. email/displayName are required
+// properties; roles is array<string>; labels is object with string values.
+// Ogen: roles -> []string, labels -> map[string]string.
+// Converters: copy scalars, allocate slice/map when non-empty.
+message UserInput {
+  option (ogen.message) = {
+    schema_name: "UserInput"
+    schema: {
+      description: "Input payload for creating a user."
+    }
+  };
+
+  string email = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_EMAIL
+      }
+    }
+  ];
+
+  string display_name = 2 [
+    (ogen.field) = {
+      required: true
+      name: "displayName"
+      go_name: "PublicName"
+    }
+  ];
+
+  repeated string roles = 3;
+  map<string, string> labels = 4;
+}
+
+// OpenAPI: component schema User. Required id/email/displayName, nullable
+// avatarUrl, string enum status, repeated addresses, labels object, RFC3339
+// timestamps.
+// Ogen: avatar_url should become an optional/nullable string representation,
+// status should use string enum representation, timestamps should map according
+// to ogen date-time handling.
+// Converters: preserve optional presence, convert enum names, convert repeated
+// Address and labels map, convert protobuf Timestamp <-> ogen time type.
+message User {
+  option (ogen.message) = {
+    schema_name: "User"
+    schema: {
+      description: "Public user representation."
+    }
+  };
+
+  string id = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_UUID
+      }
+    }
+  ];
+
+  string email = 2 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_EMAIL
+      }
+    }
+  ];
+
+  string display_name = 3 [
+    (ogen.field) = {
+      required: true
+      name: "displayName"
+    }
+  ];
+
+  optional string avatar_url = 4 [
+    (ogen.field) = {
+      name: "avatarUrl"
+      schema: {
+        nullable: true
+        string_format: STRING_FORMAT_URI
+      }
+    }
+  ];
+
+  UserStatus status = 5 [
+    (ogen.field) = {
+      enum_as_string: true
+    }
+  ];
+
+  repeated Address addresses = 6;
+  map<string, string> labels = 7;
+  google.protobuf.Timestamp created_at = 8 [
+    (ogen.field) = {
+      name: "createdAt"
+    }
+  ];
+  google.protobuf.Timestamp updated_at = 9 [
+    (ogen.field) = {
+      name: "updatedAt"
+    }
+  ];
+}
+
+// OpenAPI: nested component schema Address with required line1/city/countryCode.
+// Ogen: plain object type with string fields.
+// Converters: direct scalar copies with JSON name override for countryCode.
+message Address {
+  string line1 = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+
+  string line2 = 2;
+  string city = 3 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+  string country_code = 4 [
+    (ogen.field) = {
+      required: true
+      name: "countryCode"
+    }
+  ];
+}
+
+// OpenAPI: request body defaults to the whole EchoCoverageRequest message
+// because request_body.field_path is empty in the method option.
+// Ogen: payload property is required CoveragePayload.
+// Converters: EchoCoverageRequest.Payload <-> ogen CoveragePayload.
+message EchoCoverageRequest {
+  CoveragePayload payload = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: response body defaults to the whole EchoCoverageResponse message.
+// Ogen: payload property is required CoveragePayload.
+// Converters: EchoCoverageResponse.Payload <-> ogen CoveragePayload.
+message EchoCoverageResponse {
+  CoveragePayload payload = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// CoveragePayload is the schema mapping contract for protobuf field shapes.
+//
+// Scalar OpenAPI mapping:
+//   double -> number/double, float -> number/float
+//   int32/sint32/sfixed32 -> integer/int32
+//   int64/sint64/sfixed64 -> integer/int64
+//   uint32/fixed32 -> integer/int32 or integer with unsigned constraint policy
+//   uint64/fixed64 -> integer/int64 or integer with unsigned constraint policy
+//   bool -> boolean, string -> string, bytes -> string/byte
+//
+// Ogen/converter contract:
+//   scalar fields copy directly when ogen uses matching Go primitives;
+//   non-matching custom mappings must go through generated converter code or
+//   explicit override_ogen_type/casters in future implementation.
+message CoveragePayload {
+  option (ogen.message) = {
+    schema_name: "CoveragePayload"
+    schema: {
+      description: "Covers protobuf shapes that must map to OpenAPI and ogen."
+      extensions: {
+        name: "x-ogen-name"
+        value: "\"Coverage\""
+      }
+    }
+  };
+
+  double double_value = 1;
+  float float_value = 2;
+  int32 int32_value = 3;
+  int64 int64_value = 4;
+  uint32 uint32_value = 5;
+  uint64 uint64_value = 6;
+  sint32 sint32_value = 7;
+  sint64 sint64_value = 8;
+  fixed32 fixed32_value = 9;
+  fixed64 fixed64_value = 10;
+  sfixed32 sfixed32_value = 11;
+  sfixed64 sfixed64_value = 12;
+  bool bool_value = 13;
+  string string_value = 14;
+  // OpenAPI: string format byte. Ogen: []byte or string depending on ogen byte
+  // mapping. Converters: preserve raw bytes without UTF-8 assumptions.
+  bytes bytes_value = 15 [
+    (ogen.field) = {
+      schema: {
+        string_format: STRING_FORMAT_BYTE
+      }
+    }
+  ];
+
+  // OpenAPI: optional fields are not required; nullable override permits JSON
+  // null for optional_string. Ogen: optional value wrapper (OptString/OptInt64
+  // style). Converters must preserve presence separately from zero value.
+  optional string optional_string = 20 [
+    (ogen.field) = {
+      schema: {
+        nullable: true
+      }
+    }
+  ];
+  optional int64 optional_int64 = 21;
+  // OpenAPI: arrays. Ogen: slices. Converters allocate/copy slices.
+  repeated string repeated_string = 22;
+  repeated int32 repeated_int32 = 23;
+  // OpenAPI: objects with additionalProperties. Ogen: maps. Converters
+  // allocate/copy maps and recursively convert nested message values.
+  map<string, int64> string_int64_map = 24;
+  map<string, NestedCoverage> nested_map = 25;
+
+  // OpenAPI: enum_as_string makes enum schema string enum values, including
+  // repeated enum array items. Ogen: generated string enum type if possible.
+  // Converters map protobuf enum numbers/names to ogen enum values and back.
+  UserStatus enum_value = 30 [
+    (ogen.field) = {
+      enum_as_string: true
+    }
+  ];
+  repeated UserStatus repeated_enum = 31 [
+    (ogen.field) = {
+      enum_as_string: true
+    }
+  ];
+  NestedCoverage nested = 32;
+
+  // Well-known type mapping:
+  //   Timestamp -> string/date-time, Go time.Time or ogen date-time type
+  //   Duration -> string/duration
+  //   wrapper types -> nullable/optional schema around the wrapped scalar
+  //   Struct -> object with arbitrary JSON properties
+  //   Value -> arbitrary JSON value
+  //   ListValue -> array of arbitrary JSON values
+  //   Any -> object representation chosen by protobuf JSON policy
+  // Converters must use protobuf well-known accessors and preserve nil wrappers.
+  google.protobuf.Timestamp timestamp_value = 40;
+  google.protobuf.Duration duration_value = 41;
+  google.protobuf.StringValue string_wrapper = 42;
+  google.protobuf.Int64Value int64_wrapper = 43;
+  google.protobuf.BoolValue bool_wrapper = 44;
+  google.protobuf.UInt64Value uint64_wrapper = 45;
+  google.protobuf.DoubleValue double_wrapper = 46;
+  google.protobuf.BytesValue bytes_wrapper = 47;
+  google.protobuf.Struct struct_value = 48;
+  google.protobuf.Value any_json_value = 49;
+  google.protobuf.ListValue list_value = 50;
+  google.protobuf.Any any_value = 51;
+
+  // OpenAPI: oneOf union without explicit discriminator because variants mix
+  // scalar JSON values and object values. See docs/oneof-discriminator.md.
+  // Ogen handles this with type discrimination. Setting discriminator_property
+  // here must fail generation: scalar variants cannot carry a discriminator field.
+  // Ogen: tagged union representation generated from oneOf.
+  // Converters: switch on protobuf oneof case and construct matching ogen
+  // variant; FromOgen must reconstruct the protobuf oneof wrapper.
+  oneof search {
+    option (ogen.oneof) = {
+      schema_mode: ONEOF_SCHEMA_MODE_ONE_OF
+    };
+
+    string search_text = 60;
+    int64 search_id = 61;
+    NestedCoverage search_nested = 62;
+  }
+}
+
+// OpenAPI: raw file upload body. Request body content type is image/png and
+// schema is string/binary. Ogen should generate UploadAvatarReq with io.Reader.
+message UploadAvatarRequest {
+  bytes data = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_BINARY
+      }
+    }
+  ];
+}
+
+// OpenAPI: multipart/form-data upload. title/content are regular required
+// form fields; thumbnail is optional binary file; attachments is array of files.
+// Ogen should generate a multipart form request type using ht.MultipartFile.
+message CreatePostRequest {
+  option (ogen.message) = {
+    schema_name: "CreatePostRequest"
+  };
+
+  string title = 1 [
+    (ogen.field) = {
+      required: true
+      extensions: {
+        name: "x-oapi-codegen-extra-tags"
+        value: "{validate: required}"
+      }
+    }
+  ];
+
+  string content = 2 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+
+  bytes thumbnail = 3 [
+    (ogen.field) = {
+      schema: {
+        string_format: STRING_FORMAT_BINARY
+      }
+    }
+  ];
+
+  repeated bytes attachments = 4 [
+    (ogen.field) = {
+      schema: {
+        string_format: STRING_FORMAT_BINARY
+      }
+    }
+  ];
+}
+
+// OpenAPI: webhook wrapper. delivery_id is bound to X-Webhook-Delivery, and
+// request_body.field_path maps event to the JSON body under webhooks.userChanged.
+// Ogen: generated webhook client/server should expose UserChangedWebhook on
+// WebhookHandler, separate from regular path handlers.
+message UserChangedEvent {
+  string delivery_id = 1 [
+    (ogen.field) = {
+      required: true
+      schema: {
+        string_format: STRING_FORMAT_UUID
+      }
+    }
+  ];
+
+  UserChangedPayload event = 2 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: component schema for the webhook JSON body.
+// Ogen: regular object schema reused by webhook request body.
+// Converters: direct scalar copy plus User conversion.
+message UserChangedPayload {
+  option (ogen.message) = {
+    schema_name: "UserChangedPayload"
+  };
+
+  string action = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+
+  User user = 2 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: simple nested component used directly, inside maps, and inside
+// oneof variants. note is optional nullable string.
+// Ogen: note should preserve absent/null/value states when possible.
+// Converters: direct name copy and optional note presence conversion.
+message NestedCoverage {
+  string name = 1;
+  optional string note = 2 [
+    (ogen.field) = {
+      schema: {
+        nullable: true
+      }
+    }
+  ];
+}
+
+// OpenAPI: reusable error schema for non-2xx responses.
+// Ogen: plain object with required code/message.
+// Converters: direct scalar copies.
+message Error {
+  option (ogen.message) = {
+    schema_name: "Error"
+  };
+
+  string code = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+
+  string message = 2 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+// OpenAPI: string enum when field option enum_as_string is set; otherwise
+// generator may choose integer enum mapping by default.
+// Ogen: generated enum type should preserve symbolic values.
+// Converters: protobuf enum <-> ogen enum with unknown/default handling policy.
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_DISABLED = 2;
+  USER_STATUS_DELETED = 3;
+}

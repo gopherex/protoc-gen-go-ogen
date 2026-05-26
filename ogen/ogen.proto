@@ -1,0 +1,417 @@
+syntax = "proto3";
+
+option go_package = "github.com/yaroher/protoc-gen-ogen/ogen";
+
+package ogen;
+
+import "google/protobuf/descriptor.proto";
+
+// HTTP method for an OpenAPI operation.
+// This cannot be inferred from a protobuf method.
+enum HttpMethod {
+  HTTP_METHOD_UNSPECIFIED = 0;
+  HTTP_METHOD_GET = 1;
+  HTTP_METHOD_POST = 2;
+  HTTP_METHOD_PUT = 3;
+  HTTP_METHOD_PATCH = 4;
+  HTTP_METHOD_DELETE = 5;
+  HTTP_METHOD_HEAD = 6;
+  HTTP_METHOD_OPTIONS = 7;
+  HTTP_METHOD_TRACE = 8;
+}
+
+// Location of a field when a protobuf request message is split into OpenAPI
+// parameters and body.
+enum ParameterLocation {
+  PARAMETER_LOCATION_UNSPECIFIED = 0;
+  PARAMETER_LOCATION_PATH = 1;
+  PARAMETER_LOCATION_QUERY = 2;
+  PARAMETER_LOCATION_HEADER = 3;
+  PARAMETER_LOCATION_COOKIE = 4;
+}
+
+// String formats supported by ogen in addition to the protobuf type system.
+// Basic OpenAPI type is inferred from the field kind; set this only when the
+// protobuf scalar does not carry enough meaning.
+enum StringFormat {
+  STRING_FORMAT_UNSPECIFIED = 0;
+  STRING_FORMAT_BYTE = 1;
+  STRING_FORMAT_BINARY = 2;
+  STRING_FORMAT_DATE = 3;
+  STRING_FORMAT_DATE_TIME = 4;
+  STRING_FORMAT_TIME = 5;
+  STRING_FORMAT_DURATION = 6;
+  STRING_FORMAT_UUID = 7;
+  STRING_FORMAT_IP = 8;
+  STRING_FORMAT_IPV4 = 9;
+  STRING_FORMAT_IPV6 = 10;
+  STRING_FORMAT_URI = 11;
+  STRING_FORMAT_EMAIL = 12;
+  STRING_FORMAT_HOSTNAME = 13;
+  STRING_FORMAT_UNIX = 14;
+  STRING_FORMAT_UNIX_SECONDS = 15;
+  STRING_FORMAT_UNIX_MILLI = 16;
+  STRING_FORMAT_UNIX_MICRO = 17;
+  STRING_FORMAT_UNIX_NANO = 18;
+  STRING_FORMAT_INT32 = 19;
+  STRING_FORMAT_INT64 = 20;
+}
+
+// How a protobuf oneof is represented in OpenAPI.
+// Default should be oneOf, but object/discriminator mode is useful for APIs
+// that expose tagged unions explicitly.
+enum OneofSchemaMode {
+  ONEOF_SCHEMA_MODE_UNSPECIFIED = 0;
+  ONEOF_SCHEMA_MODE_ONE_OF = 1;
+  ONEOF_SCHEMA_MODE_ANY_OF = 2;
+  ONEOF_SCHEMA_MODE_OBJECT = 3;
+}
+
+// Generic OpenAPI string pair, mostly for x-* extensions and discriminator maps.
+message NamedString {
+  // OpenAPI key or extension name.
+  string name = 1;
+  // Raw string value for the key.
+  string value = 2;
+}
+
+// OpenAPI Server Object.
+message Server {
+  // Server URL. Not derivable from protobuf.
+  string url = 1;
+  // Optional human-readable description.
+  string description = 2;
+  // OpenAPI x-* extensions, for example x-ogen-server-name.
+  repeated NamedString extensions = 100;
+}
+
+// OpenAPI External Documentation Object.
+message ExternalDocs {
+  // Documentation URL.
+  string url = 1;
+  // Optional human-readable description.
+  string description = 2;
+}
+
+// OpenAPI Contact Object.
+message Contact {
+  string name = 1;
+  string url = 2;
+  string email = 3;
+}
+
+// OpenAPI License Object.
+message License {
+  string name = 1;
+  string url = 2;
+}
+
+// OpenAPI Tag Object.
+message Tag {
+  string name = 1;
+  string description = 2;
+  ExternalDocs external_docs = 3;
+}
+
+// Go identifier used by converter generation when the inferred ogen type is
+// not the desired target type.
+message GoIdent {
+  string name = 1;
+  string import_path = 2;
+}
+
+// Reference to an existing OpenAPI schema, usually "#/components/schemas/Foo".
+message SchemaRef {
+  string ref = 1;
+}
+
+// Schema overrides and metadata.
+// The generator should infer OpenAPI type/format from protobuf descriptors:
+// scalar kind, map/repeated cardinality, enum, message, well-known types, and
+// field presence. Validation constraints are intentionally not duplicated here:
+// generator code should read supported validation extensions, such as PGV, from
+// descriptors and translate them to OpenAPI schema constraints.
+message SchemaOptions {
+  // OpenAPI title override. Empty means derive from message/field name.
+  string title = 1;
+  // OpenAPI description override. Empty means use protobuf source comments.
+  string description = 2;
+  // OpenAPI default value as raw JSON.
+  string default_json = 3;
+  // OpenAPI examples as raw JSON values.
+  repeated string examples_json = 4;
+  // OpenAPI enum values as raw JSON. Mostly useful for string enums.
+  repeated string enum_json = 5;
+
+  // String format override. Numeric formats are derived from protobuf scalar
+  // kind, while string semantics like uuid/email/date need an explicit hint.
+  StringFormat string_format = 10;
+  // Custom OpenAPI format when StringFormat is not enough.
+  string custom_format = 11;
+
+  // Nullable override. If unset, infer from protobuf presence/wrapper/message
+  // rules and method/body context.
+  optional bool nullable = 20;
+  // OpenAPI readOnly flag. Not expressible in protobuf.
+  optional bool read_only = 21;
+  // OpenAPI writeOnly flag. Not expressible in protobuf.
+  optional bool write_only = 22;
+
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+// File-level generation and OpenAPI document options.
+message FileOptions {
+  // Generate openapi.yaml for this protobuf file.
+  bool generate_openapi = 1;
+  // Generate or invoke ogen codegen from the generated openapi.yaml.
+  bool generate_ogen = 2;
+  // Generate proto <-> ogen converters.
+  bool generate_converters = 3;
+
+  // OpenAPI version. Empty means generator default, normally "3.1.0" or "3.0.3".
+  string openapi_version = 10;
+  // OpenAPI Info.title. Empty means derive from protobuf package/file name.
+  string title = 11;
+  // OpenAPI Info.version. Not derivable from protobuf, default should be "0.0.0".
+  string version = 12;
+  // OpenAPI Info.summary override.
+  string summary = 13;
+  // OpenAPI Info.description override. Empty means use file comments if present.
+  string description = 14;
+  // OpenAPI Info.termsOfService.
+  string terms_of_service = 15;
+  Contact contact = 16;
+  License license = 17;
+  repeated Server servers = 18;
+  repeated Tag tags = 19;
+  ExternalDocs external_docs = 20;
+
+  // Path for generated OpenAPI file. Empty means next to the input proto.
+  string openapi_output = 30;
+  // Ogen target directory. Empty means generator default.
+  string ogen_target = 31;
+  // Go package path for generated ogen code. Empty means infer from ogen_target.
+  string ogen_package = 32;
+  // Go package path for converter code. Empty means current proto Go package.
+  string converters_package = 33;
+
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+// Message-level schema and converter options.
+message MessageOptions {
+  // Exclude this message from OpenAPI components and converter generation.
+  // By default, messages reachable from services should be generated.
+  bool omit = 1;
+  // Override component schema name. Empty means derive from protobuf full name.
+  string schema_name = 2;
+  // Schema metadata overrides.
+  SchemaOptions schema = 3;
+
+  // Override the generated ogen Go type used by converters.
+  GoIdent override_ogen_type = 10;
+
+  // Whether object schemas allow unknown JSON properties.
+  // If unset in implementation, default should be false for protobuf messages.
+  optional bool additional_properties = 20;
+  // Schema for unknown JSON properties when additional_properties is true.
+  SchemaRef additional_properties_schema = 21;
+  // Discriminator property for polymorphic/object oneof schemas.
+  string discriminator_property = 22;
+  // Discriminator value -> schema ref/type name mapping.
+  repeated NamedString discriminator_mapping = 23;
+
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+// Field-level schema and converter options.
+message FieldOptions {
+  // Exclude this field from generated OpenAPI schema and converters.
+  bool omit = 1;
+  // Required override for OpenAPI object properties/parameters.
+  // If unset, infer from proto2 required, proto3 optional, oneof, path params,
+  // and chosen generator defaults.
+  optional bool required = 2;
+  // Override JSON/OpenAPI property or parameter name.
+  // Empty means use protobuf json_name.
+  string name = 3;
+  // Schema metadata overrides.
+  SchemaOptions schema = 4;
+
+  // Override the generated ogen Go type used by converters.
+  GoIdent override_ogen_type = 10;
+  // Represent enum values as strings in OpenAPI/JSON.
+  bool enum_as_string = 11;
+  // Represent enum values as integers in OpenAPI/JSON.
+  bool enum_as_int = 12;
+  // Override generated ogen Go struct field name via x-ogen-properties.
+  string go_name = 13;
+
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+// Oneof-level schema options.
+message OneofOptions {
+  // OpenAPI representation of this protobuf oneof.
+  OneofSchemaMode schema_mode = 1;
+  // Discriminator property for object/tagged union representation.
+  string discriminator_property = 2;
+  // Discriminator value -> schema ref/type name mapping.
+  repeated NamedString discriminator_mapping = 3;
+  // Schema metadata shared by the oneof schema.
+  SchemaOptions schema = 4;
+}
+
+// Service-level OpenAPI options.
+message ServiceOptions {
+  // Exclude this service from OpenAPI operation generation.
+  // By default, services with annotated methods should be generated.
+  bool omit = 1;
+  // Prefix prepended to method paths.
+  string path_prefix = 2;
+  // Tags applied to all methods in this service. Empty means service name.
+  repeated string tags = 3;
+  // Description override. Empty means use protobuf source comments.
+  string description = 4;
+  // Servers applied to all methods in this service.
+  repeated Server servers = 5;
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+// Request body binding for a protobuf method input.
+message RequestBody {
+  // Description override. Empty means use field/message comments.
+  string description = 1;
+  // Required override for requestBody.required.
+  bool required = 2;
+  // Media type. Empty means "application/json".
+  string content_type = 3;
+  // Dot-separated field path inside the protobuf request message.
+  // Empty means the whole request message is the body.
+  string field_path = 4;
+  // OpenAPI x-* extensions for the media type object, for example
+  // x-ogen-json-streaming.
+  repeated NamedString media_extensions = 5;
+  // OpenAPI x-* extensions for the requestBody object.
+  repeated NamedString extensions = 100;
+}
+
+// Response binding for a protobuf method output.
+message Response {
+  // HTTP status code. Required for non-default responses.
+  uint32 status = 1;
+  // Description override. Empty means infer from status or comments.
+  string description = 2;
+  // Media type. Empty means "application/json" when a body is present.
+  string content_type = 3;
+  // Dot-separated field path inside the protobuf response message.
+  // Empty means the whole response message is the body.
+  string field_path = 4;
+  // Explicit schema reference when the response body is not represented by the
+  // protobuf response message.
+  SchemaRef schema = 5;
+  // Header name -> dot-separated response field path.
+  repeated NamedString headers = 6;
+}
+
+// Parameter binding for a field inside a protobuf method input.
+message ParameterBinding {
+  // Dot-separated field path inside the protobuf request message.
+  string field_path = 1;
+  // OpenAPI parameter location.
+  ParameterLocation in = 2;
+  // Parameter name. Empty means use field json_name or path template name.
+  string name = 3;
+  // Required override. Path parameters are always required.
+  optional bool required = 4;
+  // Description override. Empty means use field comments.
+  string description = 5;
+  // Schema metadata overrides.
+  SchemaOptions schema = 6;
+  // OpenAPI parameter style. Empty means OpenAPI default for location.
+  string style = 7;
+  // OpenAPI parameter explode flag.
+  optional bool explode = 8;
+}
+
+// OpenAPI webhook binding for a protobuf method.
+// Webhooks are regular HTTP callback operations described in the top-level
+// OpenAPI 3.1 "webhooks" object. They are not WebSocket/SSE streams.
+message WebhookOptions {
+  // Webhook name under the top-level OpenAPI "webhooks" object.
+  // Required when MethodOptions.webhook is set.
+  string name = 1;
+}
+
+// Method-level OpenAPI operation options.
+message MethodOptions {
+  // Exclude this method from OpenAPI operation generation.
+  bool omit = 1;
+  // HTTP method. Required to expose a protobuf method as HTTP.
+  HttpMethod http_method = 2;
+  // HTTP path template, for example "/users/{id}".
+  string path = 3;
+  // Operation ID override. Empty means derive from service and method names.
+  string operation_id = 4;
+  // Summary override. Empty means use protobuf leading comments first line.
+  string summary = 5;
+  // Description override. Empty means use protobuf leading comments.
+  string description = 6;
+  // Tags override. Empty means inherit service tags.
+  repeated string tags = 7;
+  // OpenAPI deprecated flag. Empty in proto is false; protobuf deprecated option
+  // should also be honored by the generator.
+  bool deprecated = 8;
+  // Put this method into top-level OpenAPI 3.1 webhooks instead of paths.
+  WebhookOptions webhook = 9;
+
+  // Request body binding. Empty means no body, unless generator chooses a
+  // method-based default.
+  RequestBody request_body = 20;
+  // Explicit parameter bindings. Path parameters can be inferred from path
+  // template names when they match request fields; use this for query/header/
+  // cookie params or custom names/styles.
+  repeated ParameterBinding parameters = 21;
+  // Response bindings. Empty should default to a 200 response with the whole
+  // protobuf output message as JSON.
+  repeated Response responses = 22;
+
+  // Operation-level servers.
+  repeated Server servers = 30;
+  // OpenAPI x-* extensions.
+  repeated NamedString extensions = 100;
+}
+
+extend google.protobuf.FileOptions {
+  FileOptions file = 60030;
+}
+
+extend google.protobuf.EnumOptions {
+  SchemaOptions enum = 60030;
+}
+
+extend google.protobuf.MessageOptions {
+  MessageOptions message = 60030;
+}
+
+extend google.protobuf.FieldOptions {
+  FieldOptions field = 60030;
+}
+
+extend google.protobuf.OneofOptions {
+  OneofOptions oneof = 60030;
+}
+
+extend google.protobuf.ServiceOptions {
+  ServiceOptions service = 60030;
+}
+
+extend google.protobuf.MethodOptions {
+  MethodOptions method = 60030;
+}
