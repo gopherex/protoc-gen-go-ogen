@@ -53,6 +53,7 @@ service UserAPI {
   };
 
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
     option (ogen.method) = {
       http_method: HTTP_METHOD_GET
       path: "/users/{id}"
@@ -128,6 +129,7 @@ service UserAPI {
   }
 
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {
+    option idempotency_level = IDEMPOTENT;
     option (ogen.method) = {
       http_method: HTTP_METHOD_POST
       path: "/users"

@@ -260,6 +260,7 @@ func (g *OpenAPIGenerator) operationObject(svc *protogen.Service, method *protog
 		op["deprecated"] = true
 	}
 	params := g.parametersObject(method.Input, opts.GetParameters())
+	params = g.applyIdempotency(op, method, opts, params)
 	if len(params) > 0 {
 		op["parameters"] = params
 	}
@@ -280,6 +281,63 @@ func (g *OpenAPIGenerator) operationObject(svc *protogen.Service, method *protog
 		}
 	}
 	return op
+}
+
+// applyIdempotency reads the builtin google.protobuf.MethodOptions.idempotency_level
+// and surfaces it: an x-idempotency-level extension on the operation, fail-fast
+// validation that NO_SIDE_EFFECTS uses a safe HTTP method, and an injected
+// Idempotency-Key header for IDEMPOTENT operations.
+func (g *OpenAPIGenerator) applyIdempotency(op map[string]any, method *protogen.Method, opts *ogen.MethodOptions, params []any) []any {
+	switch method.Desc.Options().(*descriptorpb.MethodOptions).GetIdempotencyLevel() {
+	case descriptorpb.MethodOptions_NO_SIDE_EFFECTS:
+		op["x-idempotency-level"] = "NO_SIDE_EFFECTS"
+		if !safeHTTPMethod(opts.GetHttpMethod()) {
+			g.errs = append(g.errs, fmt.Errorf(
+				"method %s declares idempotency_level=NO_SIDE_EFFECTS but uses non-safe HTTP method %q; use GET, HEAD, OPTIONS, or TRACE",
+				method.Desc.FullName(), httpMethodName(opts.GetHttpMethod())))
+		}
+	case descriptorpb.MethodOptions_IDEMPOTENT:
+		op["x-idempotency-level"] = "IDEMPOTENT"
+		if !hasHeaderParam(params, "Idempotency-Key") {
+			params = append(params, idempotencyKeyHeader())
+		}
+	}
+	return params
+}
+
+func safeHTTPMethod(m ogen.HttpMethod) bool {
+	switch m {
+	case ogen.HttpMethod_HTTP_METHOD_GET, ogen.HttpMethod_HTTP_METHOD_HEAD,
+		ogen.HttpMethod_HTTP_METHOD_OPTIONS, ogen.HttpMethod_HTTP_METHOD_TRACE:
+		return true
+	default:
+		return false
+	}
+}
+
+func hasHeaderParam(params []any, name string) bool {
+	for _, p := range params {
+		m, ok := p.(map[string]any)
+		if !ok {
+			continue
+		}
+		if m["in"] == "header" {
+			if n, _ := m["name"].(string); strings.EqualFold(n, name) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func idempotencyKeyHeader() map[string]any {
+	return map[string]any{
+		"name":        "Idempotency-Key",
+		"in":          "header",
+		"required":    false,
+		"description": "Optional idempotency key used to safely retry the request.",
+		"schema":      map[string]any{"type": "string", "format": "uuid"},
+	}
 }
 
 func (g *OpenAPIGenerator) parametersObject(input *protogen.Message, bindings []*ogen.ParameterBinding) []any {
