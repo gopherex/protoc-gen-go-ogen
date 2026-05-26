@@ -932,6 +932,9 @@ type FileOptions struct {
 	OgenTarget string `protobuf:"bytes,31,opt,name=ogen_target,json=ogenTarget,proto3" json:"ogen_target,omitempty"`
 	// Go package path for generated ogen code. Empty means infer from ogen_target.
 	OgenPackage string `protobuf:"bytes,32,opt,name=ogen_package,json=ogenPackage,proto3" json:"ogen_package,omitempty"`
+	// Short Go package name for generated ogen code (the ogen --package flag).
+	// Empty means use the last path segment of ogen_package, then ogen_target.
+	OgenPackageName string `protobuf:"bytes,34,opt,name=ogen_package_name,json=ogenPackageName,proto3" json:"ogen_package_name,omitempty"`
 	// Go package path for converter code. Empty means current proto Go package.
 	ConvertersPackage string `protobuf:"bytes,33,opt,name=converters_package,json=convertersPackage,proto3" json:"converters_package,omitempty"`
 	// OpenAPI x-* extensions.
@@ -1085,6 +1088,13 @@ func (x *FileOptions) GetOgenTarget() string {
 func (x *FileOptions) GetOgenPackage() string {
 	if x != nil {
 		return x.OgenPackage
+	}
+	return ""
+}
+
+func (x *FileOptions) GetOgenPackageName() string {
+	if x != nil {
+		return x.OgenPackageName
 	}
 	return ""
 }
@@ -2175,7 +2185,7 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\t_nullableB\f\n" +
 	"\n" +
 	"_read_onlyB\r\n" +
-	"\v_write_only\"\xec\x05\n" +
+	"\v_write_only\"\x98\x06\n" +
 	"\vFileOptions\x12)\n" +
 	"\x10generate_openapi\x18\x01 \x01(\bR\x0fgenerateOpenapi\x12#\n" +
 	"\rgenerate_ogen\x18\x02 \x01(\bR\fgenerateOgen\x12/\n" +
@@ -2195,7 +2205,8 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\x0eopenapi_output\x18\x1e \x01(\tR\ropenapiOutput\x12\x1f\n" +
 	"\vogen_target\x18\x1f \x01(\tR\n" +
 	"ogenTarget\x12!\n" +
-	"\fogen_package\x18  \x01(\tR\vogenPackage\x12-\n" +
+	"\fogen_package\x18  \x01(\tR\vogenPackage\x12*\n" +
+	"\x11ogen_package_name\x18\" \x01(\tR\x0fogenPackageName\x12-\n" +
 	"\x12converters_package\x18! \x01(\tR\x11convertersPackage\x121\n" +
 	"\n" +
 	"extensions\x18d \x03(\v2\x11.ogen.NamedStringR\n" +

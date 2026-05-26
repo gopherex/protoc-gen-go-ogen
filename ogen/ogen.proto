@@ -194,6 +194,9 @@ message FileOptions {
   string ogen_target = 31;
   // Go package path for generated ogen code. Empty means infer from ogen_target.
   string ogen_package = 32;
+  // Short Go package name for generated ogen code (the ogen --package flag).
+  // Empty means use the last path segment of ogen_package, then ogen_target.
+  string ogen_package_name = 34;
   // Go package path for converter code. Empty means current proto Go package.
   string converters_package = 33;
 

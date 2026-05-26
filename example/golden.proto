@@ -40,8 +40,8 @@ option (ogen.file) = {
     name: "webhooks"
     description: "Webhook callback operations"
   }
-  openapi_output: "example/gen/openapi.yaml"
-  ogen_target: "example/gen/ogen"
+  openapi_output: "openapi.yaml"
+  ogen_target: "ogen"
   ogen_package: "github.com/yaroher/protoc-gen-ogen/example/gen/ogen"
   converters_package: "github.com/yaroher/protoc-gen-ogen/example/gen/converters"
 };

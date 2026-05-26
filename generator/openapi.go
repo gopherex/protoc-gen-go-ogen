@@ -91,15 +91,29 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 	if err != nil {
 		return fmt.Errorf("marshal openapi yaml: %w", err)
 	}
-	output := fileOpts.GetOpenapiOutput()
-	if output == "" {
-		output = file.GeneratedFilenamePrefix + ".openapi.yaml"
-	} else {
-		output = path.Base(output)
+
+	yamlName := openapiFileName(file, fileOpts)
+	switch {
+	case g.Settings.OpenAPIOut != "":
+		// Explicit CLI destination: write the document to disk.
+		if err := writeOpenAPIFile(g.Settings.OpenAPIOut, yamlName, data); err != nil {
+			return err
+		}
+	case !fileOpts.GetGenerateOgen():
+		// No ogen output requested and no disk destination: emit the document
+		// through protoc so the plugin still produces something.
+		gf := g.Plugin.NewGeneratedFile(yamlName, "")
+		if _, err := gf.Write(data); err != nil {
+			return err
+		}
 	}
-	gf := g.Plugin.NewGeneratedFile(output, "")
-	_, err = gf.Write(data)
-	return err
+
+	if fileOpts.GetGenerateOgen() {
+		if err := g.generateOgen(fileOpts, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (g *OpenAPIGenerator) collectComponentNames(messages []*protogen.Message) {

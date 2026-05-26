@@ -14,15 +14,19 @@ FromOgen(ogen.Target) proto.Target
 
 1. User defines protobuf messages and services.
 2. `protoc-gen-ogen` reads protobuf descriptors and `ogen/ogen.proto` options.
-3. The plugin generates `openapi.yaml`.
-4. `ogen` generates Go client/server/types from that YAML.
+3. The plugin builds the OpenAPI document in memory.
+4. When `ogen.file.generate_ogen` is set, the plugin runs `ogen` **in-process**
+   (as a library, pinned through `go.mod`) and emits the generated Go
+   client/server/types through the protoc response.
 5. Converter generation will use the same descriptor mapping decisions.
+
+A single `protoc` run now produces both the OpenAPI document and the generated
+ogen Go code; there is no separate `ogen` invocation.
 
 Golden generation:
 
 ```sh
 make gen-test
-make gen-ogen-test
 ```
 
 Verification:
@@ -42,41 +46,37 @@ The full tested path is:
    go build -o ./bin/protoc-gen-ogen ./
    ```
 
-2. Run `protoc` against the golden protobuf file with the local plugin:
+2. Run `protoc` against the golden protobuf file with the local plugin. The
+   plugin reads the ogen config, builds the OpenAPI document, runs ogen
+   in-process, and writes both outputs:
 
    ```sh
    protoc \
      -I . \
      -I ./example \
+     -I "$(go list -m -f '{{.Dir}}' github.com/envoyproxy/protoc-gen-validate)" \
      --plugin=protoc-gen-ogen=./bin/protoc-gen-ogen \
      --ogen_out=./example/gen \
      --ogen_opt=paths=source_relative \
+     --ogen_opt=ogen_config=./example/ogen.yml \
+     --ogen_opt=openapi_out=./example/gen \
      ./example/golden.proto
    ```
 
-   This produces `example/gen/openapi.yaml`.
+   This produces `example/gen/openapi.yaml` and the ogen package under
+   `example/gen/ogen`.
 
-3. Run ogen against the generated OpenAPI document and the golden ogen config:
-
-   ```sh
-   go run github.com/ogen-go/ogen/cmd/ogen@latest \
-     --config ./example/ogen.yml \
-     --target ./example/gen/ogen \
-     --package ogen \
-     --clean \
-     ./example/gen/openapi.yaml
-   ```
-
-4. Compile and test both the plugin repo and the generated ogen package:
+3. Compile and test both the plugin repo and the generated ogen package:
 
    ```sh
    go test ./...
    cd example/gen/ogen && go test ./...
    ```
 
-`make gen-ogen-test` runs steps 1-3. The final `go test` commands verify that
-the generated OpenAPI is accepted by ogen and that the generated Go code
-compiles, including webhook client/server output.
+`make gen-test` runs steps 1-2. The final `go test` commands verify that the
+generated OpenAPI is accepted by ogen and that the generated Go code compiles,
+including webhook client/server output. The PGV `validate.proto` include is
+needed because the golden proto uses `(validate.rules)` options.
 
 ## Proto Options
 
@@ -84,7 +84,10 @@ Generation options live in `ogen/ogen.proto`.
 
 Current option levels:
 
-- `ogen.file`: OpenAPI document metadata, servers, tags, output paths.
+- `ogen.file`: OpenAPI document metadata, servers, tags, output paths, ogen
+  generation toggle (`generate_ogen`), ogen target dir (`ogen_target`, relative
+  to `--ogen_out`), ogen Go import path (`ogen_package`) and short package name
+  (`ogen_package_name`, defaults to the last segment of `ogen_package`).
 - `ogen.service`: path prefix, tags, service-level servers.
 - `ogen.method`: HTTP binding, parameters, request body, responses, webhooks.
 - `ogen.message`: schema naming, schema metadata, additional properties.
@@ -95,6 +98,28 @@ Current option levels:
 Validation options are intentionally not duplicated in `ogen/ogen.proto`.
 Validation is read from `protoc-gen-validate` (PGV) field rules and translated
 into OpenAPI schema constraints. See `## Validation`.
+
+## Plugin Options
+
+Plugin-level options are passed through `--ogen_opt=key=value` (repeatable, or
+comma-separated). They are CLI/build concerns, distinct from the per-file
+`ogen.file` proto options:
+
+- `ogen_config`: path to an ogen config file (`ogen.yml`), loaded into ogen's
+  `gen.Options`. One config applies to every generated spec. Empty means ogen
+  defaults.
+- `openapi_out`: directory to write generated `openapi.yaml` file(s) to. Empty
+  means the OpenAPI document is not written to disk separately.
+
+Output rules per protobuf file:
+
+- `generate_ogen` set: the plugin runs ogen in-process and emits the Go package
+  under `ogen_target` (relative to `--ogen_out`).
+- `openapi_out` set: the OpenAPI document is also written to that directory.
+- Neither set: the OpenAPI document is emitted through protoc under `--ogen_out`
+  so the plugin still produces output.
+
+The standard `paths` and `module` protoc-gen parameters are also honored.
 
 ## OpenAPI Generation
 

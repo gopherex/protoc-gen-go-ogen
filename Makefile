@@ -24,16 +24,14 @@ gen-test: build
 		--plugin=protoc-gen-ogen=$(CURDIR)/bin/protoc-gen-ogen \
 		--ogen_out=$(EXAMPLE_OUT_DIR) \
 		--ogen_opt=paths=source_relative \
+		--ogen_opt=ogen_config=$(EXAMPLE_DIR)/ogen.yml \
+		--ogen_opt=openapi_out=$(EXAMPLE_OUT_DIR) \
 		$(EXAMPLE_DIR)/golden.proto
 
+# The plugin now invokes ogen in-process, so generation is a single protoc run.
+# Kept as an alias for compatibility with earlier docs/scripts.
 .PHONY: gen-ogen-test
 gen-ogen-test: gen-test
-	go run github.com/ogen-go/ogen/cmd/ogen@latest \
-		--config $(EXAMPLE_DIR)/ogen.yml \
-		--target $(EXAMPLE_OUT_DIR)/ogen \
-		--package ogen \
-		--clean \
-		$(EXAMPLE_OUT_DIR)/openapi.yaml
 
 .PHONY: run-test
 run-test:
