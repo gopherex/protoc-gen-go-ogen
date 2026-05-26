@@ -3,6 +3,7 @@ OGEN_OPTS_DIR=$(CURDIR)/ogen
 OGEN_OPTS=$(shell find "$(OGEN_OPTS_DIR)" -type f -name '*.proto')
 EXAMPLE_DIR=$(CURDIR)/example
 EXAMPLE_OUT_DIR=$(EXAMPLE_DIR)/gen
+VALIDATE_INC=$(shell go list -m -f '{{.Dir}}' github.com/envoyproxy/protoc-gen-validate)
 
 .PHONY: gen-opts
 gen-opts:
@@ -19,6 +20,7 @@ gen-test: build
 	protoc \
 		-I $(CURDIR) \
 		-I $(EXAMPLE_DIR) \
+		-I $(VALIDATE_INC) \
 		--plugin=protoc-gen-ogen=$(CURDIR)/bin/protoc-gen-ogen \
 		--ogen_out=$(EXAMPLE_OUT_DIR) \
 		--ogen_opt=paths=source_relative \

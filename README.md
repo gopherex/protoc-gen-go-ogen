@@ -93,8 +93,8 @@ Current option levels:
 - `ogen.oneof`: `oneOf`/`anyOf` mode and discriminator metadata.
 
 Validation options are intentionally not duplicated in `ogen/ogen.proto`.
-Validation should be read from existing validation extensions such as
-`protoc-gen-validate` descriptors and translated by the generator when needed.
+Validation is read from `protoc-gen-validate` (PGV) field rules and translated
+into OpenAPI schema constraints. See `## Validation`.
 
 ## OpenAPI Generation
 
@@ -121,6 +121,48 @@ Implemented protobuf mapping:
 
 Response status `0` means OpenAPI `default` response. Empty protobuf responses
 do not emit response body content.
+
+## Validation
+
+The generator reads [`protoc-gen-validate`](https://github.com/bufbuild/protoc-gen-validate)
+(PGV) field rules from the `(validate.rules)` extension and translates them into
+OpenAPI schema constraints. ogen then generates validation code on the generated
+ogen types; proto-side validation stays the job of a separate PGV plugin.
+
+The PGV proto is not imported into the generator build. The generator depends on
+the PGV Go module (`github.com/envoyproxy/protoc-gen-validate`) only to read the
+extension descriptors. The proto file that *uses* PGV options must still import
+`validate/validate.proto`, so `protoc` needs that file on its include path (the
+golden `make gen-test` adds it via `go list -m`).
+
+Mapping (`generator/validate.go`):
+
+- Numeric (`int*`/`uint*`/`sint*`/`fixed*`/`float`/`double`): `gte`/`lte` ->
+  `minimum`/`maximum`; `gt`/`lt` -> exclusive bounds; `const` and `in` -> `enum`.
+- String: `len`/`min_len`/`max_len` -> `minLength`/`maxLength`; `pattern` ->
+  `pattern`; `prefix`/`suffix`/`contains` -> a single anchored `pattern`;
+  `const`/`in` -> `enum`; well-known formats (`email`, `uuid`, `uri`, `uri_ref`,
+  `ipv4`, `ipv6`, `ip`, `hostname`) -> `format`.
+- Bytes: `len`/`min_len`/`max_len` -> `minLength`/`maxLength`; `pattern` ->
+  `pattern` (best effort on the encoded string).
+- Repeated: `min_items`/`max_items`/`unique` -> `minItems`/`maxItems`/
+  `uniqueItems`; `items` rules apply to the array item schema.
+- Map: `min_pairs`/`max_pairs` -> `minProperties`/`maxProperties`; `values`
+  rules apply to `additionalProperties`; `keys` rules map to `propertyNames`
+  on OpenAPI 3.1 only.
+- Enum: `const`/`in`/`not_in` filter the emitted `enum` values, preserving the
+  string or integer representation; `defined_only` is a no-op (only defined
+  values are emitted anyway).
+- `message.required` marks the property as `required`.
+
+Exclusive numeric bounds account for the OpenAPI version: `3.0.x` uses
+`minimum` + `exclusiveMinimum: true`, `3.1.x` uses the numeric
+`exclusiveMinimum`.
+
+Rules with no native OpenAPI representation are skipped on purpose: `not_in`
+(numeric/string), byte-length rules on strings (`len_bytes`/`min_bytes`/
+`max_bytes`), `not_contains`, `string.address`, and `timestamp`/`duration`
+range rules.
 
 ## Oneof Policy
 
@@ -246,6 +288,8 @@ It covers:
 - request parameters and request bodies;
 - default and explicit responses;
 - scalar, optional, repeated, map, enum, nested message, oneof, and WKT schemas;
+- PGV validation constraints (numeric range, string length/pattern/format,
+  repeated items/unique, map size, enum filtering);
 - OpenAPI/ogen extensions;
 - automatic operation groups;
 - raw and multipart file upload;

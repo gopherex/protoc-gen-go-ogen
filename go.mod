@@ -5,6 +5,7 @@ go 1.26
 require google.golang.org/protobuf v1.36.11
 
 require (
+	github.com/envoyproxy/protoc-gen-validate v1.3.0
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0

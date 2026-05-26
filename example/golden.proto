@@ -11,6 +11,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 import "ogen/ogen.proto";
+import "validate/validate.proto";
 
 option (ogen.file) = {
   generate_openapi: true
@@ -352,6 +353,10 @@ message ListUsersRequest {
   int32 page_size = 1 [
     (ogen.field) = {
       name: "pageSize"
+    },
+    (validate.rules).int32 = {
+      gte: 1
+      lte: 100
     }
   ];
 
@@ -443,11 +448,31 @@ message UserInput {
       required: true
       name: "displayName"
       go_name: "PublicName"
+    },
+    (validate.rules).string = {
+      min_len: 1
+      max_len: 80
     }
   ];
 
-  repeated string roles = 3;
-  map<string, string> labels = 4;
+  repeated string roles = 3 [
+    (validate.rules).repeated = {
+      min_items: 1
+      max_items: 10
+      unique: true
+      items: {
+        string: {
+          min_len: 1
+          max_len: 32
+        }
+      }
+    }
+  ];
+  map<string, string> labels = 4 [
+    (validate.rules).map = {
+      max_pairs: 20
+    }
+  ];
 }
 
 // OpenAPI: component schema User. Required id/email/displayName, nullable
@@ -541,6 +566,9 @@ message Address {
     (ogen.field) = {
       required: true
       name: "countryCode"
+    },
+    (validate.rules).string = {
+      pattern: "^[A-Z]{2}$"
     }
   ];
 }
@@ -643,6 +671,9 @@ message CoveragePayload {
   UserStatus enum_value = 30 [
     (ogen.field) = {
       enum_as_string: true
+    },
+    (validate.rules).enum = {
+      in: [1, 2, 3]
     }
   ];
   repeated UserStatus repeated_enum = 31 [

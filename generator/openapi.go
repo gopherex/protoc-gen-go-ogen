@@ -19,6 +19,7 @@ type OpenAPIGenerator struct {
 	Plugin        *protogen.Plugin
 	Settings      *PluginSettings
 	componentName map[protoreflect.FullName]string
+	oasVersion    string
 	errs          []error
 }
 
@@ -50,6 +51,7 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 	g.componentName = map[protoreflect.FullName]string{}
 	g.errs = nil
 	g.collectComponentNames(file.Messages)
+	g.oasVersion = openAPIVersion(fileOpts, fileHasWebhooks(file))
 
 	paths := g.pathsObject(file)
 	webhooks := g.webhooksObject(file)
@@ -57,7 +59,7 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 		return fmt.Errorf("webhooks require OpenAPI 3.1; remove openapi_version override or set it to 3.1.0")
 	}
 	doc := map[string]any{
-		"openapi": openAPIVersion(fileOpts, len(webhooks) > 0),
+		"openapi": g.oasVersion,
 		"info":    g.infoObject(file, fileOpts),
 		"paths":   paths,
 	}
@@ -487,6 +489,7 @@ func (g *OpenAPIGenerator) schemaForField(field *protogen.Field) map[string]any 
 	} else {
 		schema = g.schemaForSingularField(field)
 	}
+	g.applyValidation(schema, field)
 	if opts := getFieldOptions(field); opts != nil {
 		applySchemaOptions(schema, opts.GetSchema())
 		applyExtensions(schema, opts.GetExtensions())
@@ -617,6 +620,24 @@ func getMethodOptions(method *protogen.Method) *ogen.MethodOptions {
 	return nil
 }
 
+func fileHasWebhooks(file *protogen.File) bool {
+	for _, svc := range file.Services {
+		if opts := getServiceOptions(svc); opts != nil && opts.GetOmit() {
+			continue
+		}
+		for _, method := range svc.Methods {
+			methodOpts := getMethodOptions(method)
+			if methodOpts == nil || methodOpts.GetOmit() {
+				continue
+			}
+			if methodOpts.GetWebhook().GetName() != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func openAPIVersion(opts *ogen.FileOptions, hasWebhooks bool) string {
 	if opts.GetOpenapiVersion() != "" {
 		return opts.GetOpenapiVersion()
@@ -662,8 +683,10 @@ func fieldOmitted(field *protogen.Field) bool {
 }
 
 func fieldRequired(field *protogen.Field) bool {
-	opts := getFieldOptions(field)
-	return opts != nil && opts.Required != nil && opts.GetRequired()
+	if opts := getFieldOptions(field); opts != nil && opts.Required != nil && opts.GetRequired() {
+		return true
+	}
+	return validateRequired(field)
 }
 
 func fieldOpenAPIName(field *protogen.Field) string {
