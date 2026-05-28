@@ -47,7 +47,8 @@ gen-test: build
 		--ogen_opt=paths=source_relative \
 		--ogen_opt=ogen_config=$(EXAMPLE_DIR)/ogen.yml \
 		--ogen_opt=openapi_out=$(EXAMPLE_OUT_DIR) \
-		$(EXAMPLE_DIR)/golden.proto
+		$(EXAMPLE_DIR)/golden.proto \
+		$(EXAMPLE_DIR)/admin.proto
 
 # The plugin invokes ogen in-process, so generation is a single protoc run.
 # Kept as an alias for compatibility with earlier docs/scripts.

@@ -135,6 +135,18 @@ func TestError_EncodeDecode(t *testing.T) {
 	var typ2 Error
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
+func TestGetHealthResponse_EncodeDecode(t *testing.T) {
+	var typ GetHealthResponse
+	typ.SetFake()
+
+	e := jx.Encoder{}
+	typ.Encode(&e)
+	data := e.Bytes()
+	require.True(t, std.Valid(data), "Encoded: %s", data)
+
+	var typ2 GetHealthResponse
+	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
+}
 func TestListUsersResponse_EncodeDecode(t *testing.T) {
 	var typ ListUsersResponse
 	typ.SetFake()

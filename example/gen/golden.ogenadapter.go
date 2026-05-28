@@ -14,6 +14,7 @@ type OgenAdapter struct {
 	coverageAPI CoverageAPIServer
 	uploadAPI   UploadAPIServer
 	webhookAPI  WebhookAPIServer
+	adminAPI    AdminAPIServer
 }
 
 // NewOgenAdapter builds an OgenAdapter from the gRPC service implementations.
@@ -22,31 +23,33 @@ func NewOgenAdapter(
 	coverageAPI CoverageAPIServer,
 	uploadAPI UploadAPIServer,
 	webhookAPI WebhookAPIServer,
+	adminAPI AdminAPIServer,
 ) *OgenAdapter {
 	return &OgenAdapter{
 		userAPI:     userAPI,
 		coverageAPI: coverageAPI,
 		uploadAPI:   uploadAPI,
 		webhookAPI:  webhookAPI,
+		adminAPI:    adminAPI,
 	}
 }
 
-func (a *OgenAdapter) CreatePost(ctx context.Context, req *ogen.CreatePostRequestMultipart) error {
+func (a *OgenAdapter) CreatePost(ctx context.Context, req *ogen.CreatePostRequestMultipart) (ogen.CreatePostRes, error) {
 	in := &CreatePostRequest{}
 	b, err := CreatePostRequestFromOgen(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	in = b
 	resp, err := a.uploadAPI.CreatePost(ctx, in)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_ = resp
-	return nil
+	return &ogen.CreatePostOK{}, nil
 }
 
-func (a *OgenAdapter) CreateUser(ctx context.Context, req *ogen.UserInput, params ogen.CreateUserParams) (*ogen.User, error) {
+func (a *OgenAdapter) CreateUser(ctx context.Context, req *ogen.UserInput, params ogen.CreateUserParams) (ogen.CreateUserRes, error) {
 	in := &CreateUserRequest{}
 	b, err := UserInputFromOgen(req)
 	if err != nil {
@@ -64,18 +67,18 @@ func (a *OgenAdapter) CreateUser(ctx context.Context, req *ogen.UserInput, param
 	return out, nil
 }
 
-func (a *OgenAdapter) DeleteUser(ctx context.Context, params ogen.DeleteUserParams) error {
+func (a *OgenAdapter) DeleteUser(ctx context.Context, params ogen.DeleteUserParams) (ogen.DeleteUserRes, error) {
 	in := &DeleteUserRequest{}
 	in.Id = params.ID.String()
 	resp, err := a.userAPI.DeleteUser(ctx, in)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_ = resp
-	return nil
+	return &ogen.DeleteUserNoContent{}, nil
 }
 
-func (a *OgenAdapter) EchoCoverage(ctx context.Context, req *ogen.EchoCoverageRequest) (*ogen.EchoCoverageResponse, error) {
+func (a *OgenAdapter) EchoCoverage(ctx context.Context, req *ogen.EchoCoverageRequest) (ogen.EchoCoverageRes, error) {
 	in := &EchoCoverageRequest{}
 	b, err := EchoCoverageRequestFromOgen(req)
 	if err != nil {
@@ -83,6 +86,19 @@ func (a *OgenAdapter) EchoCoverage(ctx context.Context, req *ogen.EchoCoverageRe
 	}
 	in = b
 	resp, err := a.coverageAPI.EchoCoverage(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	out, err := resp.ToOgen()
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (a *OgenAdapter) GetHealth(ctx context.Context) (*ogen.GetHealthResponse, error) {
+	in := &GetHealthRequest{}
+	resp, err := a.adminAPI.GetHealth(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +128,7 @@ func (a *OgenAdapter) GetUser(ctx context.Context, params ogen.GetUserParams) (o
 	return out, nil
 }
 
-func (a *OgenAdapter) ListUsers(ctx context.Context, params ogen.ListUsersParams) (*ogen.ListUsersResponse, error) {
+func (a *OgenAdapter) ListUsers(ctx context.Context, params ogen.ListUsersParams) (ogen.ListUsersRes, error) {
 	in := &ListUsersRequest{}
 	if v, ok := params.PageSize.Get(); ok {
 		in.PageSize = int32(v)
@@ -131,14 +147,14 @@ func (a *OgenAdapter) ListUsers(ctx context.Context, params ogen.ListUsersParams
 	return out, nil
 }
 
-func (a *OgenAdapter) UploadAvatar(ctx context.Context, req ogen.UploadAvatarReq) error {
+func (a *OgenAdapter) UploadAvatar(ctx context.Context, req ogen.UploadAvatarReq) (ogen.UploadAvatarRes, error) {
 	in := &UploadAvatarRequest{}
 	resp, err := a.uploadAPI.UploadAvatar(ctx, in)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_ = resp
-	return nil
+	return &ogen.UploadAvatarOK{}, nil
 }
 
 func (a *OgenAdapter) UserChangedWebhook(ctx context.Context, req *ogen.UserChangedPayload, params ogen.UserChangedWebhookParams) (ogen.UserChangedWebhookRes, error) {

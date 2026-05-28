@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package example.golden;
+
+option go_package = "github.com/gopherex/protoc-gen-go-ogen/example/gen;golden";
+
+import "ogen/ogen.proto";
+
+option (ogen.file) = {
+  generate_openapi: true
+};
+
+service AdminAPI {
+  option (ogen.service) = {
+    path_prefix: "/v1"
+    tags: "admin"
+  };
+
+  rpc GetHealth(GetHealthRequest) returns (GetHealthResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_GET
+      path: "/admin/health"
+      operation_id: "getHealth"
+      summary: "Get health"
+      responses: {
+        status: 200
+        description: "Current health."
+      }
+    };
+  }
+}
+
+message GetHealthRequest {}
+
+message GetHealthResponse {
+  string status = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}

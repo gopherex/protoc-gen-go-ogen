@@ -23,6 +23,12 @@ type OpenAPIGenerator struct {
 	errs          []error
 }
 
+type openAPIBundle struct {
+	root     *protogen.File
+	rootOpts *ogen.FileOptions
+	files    []*protogen.File
+}
+
 func NewOpenAPIGenerator(p *protogen.Plugin, settings *PluginSettings) *OpenAPIGenerator {
 	return &OpenAPIGenerator{
 		Plugin:        p,
@@ -32,6 +38,18 @@ func NewOpenAPIGenerator(p *protogen.Plugin, settings *PluginSettings) *OpenAPIG
 }
 
 func (g *OpenAPIGenerator) Generate() error {
+	bundle := g.openAPIBundle()
+	if bundle == nil {
+		return nil
+	}
+	if err := g.generateBundle(bundle); err != nil {
+		return fmt.Errorf("%s: %w", bundle.root.Desc.Path(), err)
+	}
+	return nil
+}
+
+func (g *OpenAPIGenerator) openAPIBundle() *openAPIBundle {
+	var bundle *openAPIBundle
 	for _, file := range g.Plugin.Files {
 		if !file.Generate {
 			continue
@@ -40,48 +58,104 @@ func (g *OpenAPIGenerator) Generate() error {
 		if fileOpts == nil || !fileOpts.GetGenerateOpenapi() {
 			continue
 		}
-		if err := g.generateFile(file, fileOpts); err != nil {
-			return fmt.Errorf("%s: %w", file.Desc.Path(), err)
+		if bundle == nil {
+			bundle = &openAPIBundle{}
+		}
+		bundle.files = append(bundle.files, file)
+		// The aggregate root is the single file carrying document-level options.
+		// Selecting it by content (not file order) keeps the bundle deterministic
+		// regardless of how protoc orders the inputs; a second carrier is rejected
+		// in validateBundle.
+		if bundle.root == nil || (!hasDocLevelOptions(bundle.rootOpts) && hasDocLevelOptions(fileOpts)) {
+			bundle.root = file
+			bundle.rootOpts = fileOpts
 		}
 	}
-	return nil
+	return bundle
 }
 
-func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.FileOptions) error {
+// hasDocLevelOptions reports whether ogen.file carries any document- or
+// generation-level option (anything beyond the generate_openapi inclusion
+// marker). Only the bundle root may set these.
+func hasDocLevelOptions(o *ogen.FileOptions) bool {
+	if o == nil {
+		return false
+	}
+	return o.GetGenerateOgen() || o.GetGenerateConverters() || o.GetGenerateGrpcAdapter() ||
+		o.GetOpenapiVersion() != "" || o.GetTitle() != "" || o.GetVersion() != "" ||
+		o.GetSummary() != "" || o.GetDescription() != "" || o.GetTermsOfService() != "" ||
+		o.GetContact() != nil || o.GetLicense() != nil ||
+		len(o.GetServers()) > 0 || len(o.GetTags()) > 0 || o.GetExternalDocs() != nil ||
+		o.GetOpenapiOutput() != "" || o.GetOgenTarget() != "" ||
+		o.GetOgenPackage() != "" || o.GetOgenPackageName() != "" || len(o.GetExtensions()) > 0
+}
+
+// validateBundle rejects ambiguous bundles: any non-root file carrying
+// document-level options would have those options silently dropped (only the
+// root's options shape the aggregate document and the single ogen run).
+func (g *OpenAPIGenerator) validateBundle(bundle *openAPIBundle) {
+	for _, file := range bundle.files {
+		if file == bundle.root {
+			continue
+		}
+		if hasDocLevelOptions(getFileOptions(file)) {
+			g.errs = append(g.errs, fmt.Errorf(
+				"file %s sets document-level ogen.file options, but %s is the aggregate root; only one file may carry document-level options (the others must set generate_openapi only)",
+				file.Desc.Path(), bundle.root.Desc.Path()))
+		}
+	}
+}
+
+func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 	g.componentName = map[protoreflect.FullName]string{}
 	g.errs = nil
-	g.collectComponentNames(file.Messages)
-	g.oasVersion = openAPIVersion(fileOpts, fileHasWebhooks(file))
-	g.rejectStreaming(file)
+	g.validateBundle(bundle)
+	messages := g.bundleMessages(bundle.files)
+	g.collectComponentNames(messages)
+	g.oasVersion = openAPIVersion(bundle.rootOpts, bundleHasWebhooks(bundle.files))
+	for _, file := range bundle.files {
+		g.rejectStreaming(file)
+	}
 	if len(g.errs) > 0 {
 		return errors.Join(g.errs...)
 	}
 
-	paths := g.pathsObject(file)
-	webhooks := g.webhooksObject(file)
-	if len(webhooks) > 0 && strings.HasPrefix(fileOpts.GetOpenapiVersion(), "3.0.") {
+	paths := map[string]any{}
+	webhooks := map[string]any{}
+	for _, file := range bundle.files {
+		if err := mergeOperationMaps(paths, g.pathsObject(file), "path"); err != nil {
+			return err
+		}
+		if err := mergeOperationMaps(webhooks, g.webhooksObject(file), "webhook"); err != nil {
+			return err
+		}
+	}
+	if len(webhooks) > 0 && strings.HasPrefix(bundle.rootOpts.GetOpenapiVersion(), "3.0.") {
 		return fmt.Errorf("webhooks require OpenAPI 3.1; remove openapi_version override or set it to 3.1.0")
+	}
+	if err := checkUniqueOperationIDs(paths, webhooks); err != nil {
+		return err
 	}
 	doc := map[string]any{
 		"openapi": g.oasVersion,
-		"info":    g.infoObject(file, fileOpts),
+		"info":    g.infoObject(bundle.root, bundle.rootOpts),
 		"paths":   paths,
 	}
 	if len(webhooks) > 0 {
 		doc["webhooks"] = webhooks
 	}
-	if servers := serversObject(fileOpts.GetServers()); len(servers) > 0 {
+	if servers := serversObject(bundle.rootOpts.GetServers()); len(servers) > 0 {
 		doc["servers"] = servers
 	}
-	if tags := tagsObject(fileOpts.GetTags()); len(tags) > 0 {
+	if tags := tagsObject(bundle.rootOpts.GetTags()); len(tags) > 0 {
 		doc["tags"] = tags
 	}
-	if externalDocs := externalDocsObject(fileOpts.GetExternalDocs()); len(externalDocs) > 0 {
+	if externalDocs := externalDocsObject(bundle.rootOpts.GetExternalDocs()); len(externalDocs) > 0 {
 		doc["externalDocs"] = externalDocs
 	}
-	applyExtensions(doc, fileOpts.GetExtensions())
+	applyExtensions(doc, bundle.rootOpts.GetExtensions())
 
-	schemas := g.schemasObject(file.Messages)
+	schemas := g.schemasObject(messages)
 	if len(g.errs) > 0 {
 		return errors.Join(g.errs...)
 	}
@@ -96,14 +170,14 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 		return fmt.Errorf("marshal openapi yaml: %w", err)
 	}
 
-	yamlName := openapiFileName(file, fileOpts)
+	yamlName := openapiFileName(bundle.root, bundle.rootOpts)
 	switch {
 	case g.Settings.OpenAPIOut != "":
 		// Explicit CLI destination: write the document to disk.
 		if err := writeOpenAPIFile(g.Settings.OpenAPIOut, yamlName, data); err != nil {
 			return err
 		}
-	case !fileOpts.GetGenerateOgen():
+	case !bundle.rootOpts.GetGenerateOgen():
 		// No ogen output requested and no disk destination: emit the document
 		// through protoc so the plugin still produces something.
 		gf := g.Plugin.NewGeneratedFile(yamlName, "")
@@ -112,17 +186,79 @@ func (g *OpenAPIGenerator) generateFile(file *protogen.File, fileOpts *ogen.File
 		}
 	}
 
-	if fileOpts.GetGenerateOgen() {
-		if err := g.generateOgen(file, fileOpts, data); err != nil {
+	if bundle.rootOpts.GetGenerateOgen() {
+		if err := g.generateOgen(bundle.files, bundle.rootOpts, data); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func (g *OpenAPIGenerator) bundleMessages(files []*protogen.File) []*protogen.Message {
+	seen := map[protoreflect.FullName]bool{}
+	index := g.messageIndex()
+	var out []*protogen.Message
+	for _, file := range files {
+		for _, msg := range file.Messages {
+			g.appendBundleMessage(&out, seen, msg)
+		}
+	}
+	for i := 0; i < len(out); i++ {
+		for _, field := range out[i].Fields {
+			if field.Message == nil || wellKnownSchema(field.Message.Desc.FullName()) != nil {
+				continue
+			}
+			target := field.Message
+			if target.Desc.IsMapEntry() && len(target.Fields) == 2 {
+				target = target.Fields[1].Message
+				if target == nil || wellKnownSchema(target.Desc.FullName()) != nil {
+					continue
+				}
+			}
+			if indexed := index[target.Desc.FullName()]; indexed != nil {
+				target = indexed
+			}
+			g.appendBundleMessage(&out, seen, target)
+		}
+	}
+	return out
+}
+
+func (g *OpenAPIGenerator) messageIndex() map[protoreflect.FullName]*protogen.Message {
+	index := map[protoreflect.FullName]*protogen.Message{}
+	for _, file := range g.Plugin.Files {
+		indexMessages(index, file.Messages)
+	}
+	return index
+}
+
+func indexMessages(index map[protoreflect.FullName]*protogen.Message, messages []*protogen.Message) {
+	for _, msg := range messages {
+		if msg.Desc.IsMapEntry() {
+			continue
+		}
+		index[msg.Desc.FullName()] = msg
+		indexMessages(index, msg.Messages)
+	}
+}
+
+func (g *OpenAPIGenerator) appendBundleMessage(out *[]*protogen.Message, seen map[protoreflect.FullName]bool, msg *protogen.Message) {
+	if msg.Desc.IsMapEntry() || messageOmitted(msg) || seen[msg.Desc.FullName()] {
+		return
+	}
+	seen[msg.Desc.FullName()] = true
+	*out = append(*out, msg)
+	for _, nested := range msg.Messages {
+		g.appendBundleMessage(out, seen, nested)
+	}
+}
+
 func (g *OpenAPIGenerator) collectComponentNames(messages []*protogen.Message) {
 	for _, msg := range messages {
 		if msg.Desc.IsMapEntry() || messageOmitted(msg) {
+			continue
+		}
+		if _, ok := g.componentName[msg.Desc.FullName()]; ok {
 			continue
 		}
 		name := ""
@@ -696,6 +832,76 @@ func getMethodOptions(method *protogen.Method) *ogen.MethodOptions {
 	return nil
 }
 
+// checkUniqueOperationIDs rejects duplicate operationId values across all merged
+// path and webhook operations. ogen also enforces this when building its IR, but
+// failing here yields a clearer message that names the colliding operations.
+func checkUniqueOperationIDs(maps ...map[string]any) error {
+	seen := map[string]string{} // operationId -> "METHOD name"
+	check := func(m map[string]any) error {
+		// Iterate deterministically so the reported collision is stable.
+		names := make([]string, 0, len(m))
+		for name := range m {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			item, ok := m[name].(map[string]any)
+			if !ok {
+				continue
+			}
+			methods := make([]string, 0, len(item))
+			for method := range item {
+				methods = append(methods, method)
+			}
+			sort.Strings(methods)
+			for _, method := range methods {
+				op, ok := item[method].(map[string]any)
+				if !ok {
+					continue
+				}
+				id, _ := op["operationId"].(string)
+				if id == "" {
+					continue
+				}
+				where := strings.ToUpper(method) + " " + name
+				if prev, dup := seen[id]; dup {
+					return fmt.Errorf("duplicate operationId %q on %s and %s", id, prev, where)
+				}
+				seen[id] = where
+			}
+		}
+		return nil
+	}
+	for _, m := range maps {
+		if err := check(m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func mergeOperationMaps(dst, src map[string]any, kind string) error {
+	for name, srcItemAny := range src {
+		srcItem, ok := srcItemAny.(map[string]any)
+		if !ok {
+			dst[name] = srcItemAny
+			continue
+		}
+		dstItem, _ := dst[name].(map[string]any)
+		if dstItem == nil {
+			dstItem = map[string]any{}
+			dst[name] = dstItem
+		}
+		for method, op := range srcItem {
+			if _, exists := dstItem[method]; exists {
+				return fmt.Errorf("duplicate OpenAPI %s operation %s %s", kind, strings.ToUpper(method), name)
+			}
+			dstItem[method] = op
+		}
+	}
+	return nil
+}
+
 // rejectStreaming fails fast if a streaming RPC is exposed via ogen. ogen is
 // unary-only; streaming belongs to a separate GraphQL/WebSocket generator.
 func (g *OpenAPIGenerator) rejectStreaming(file *protogen.File) {
@@ -719,6 +925,15 @@ func (g *OpenAPIGenerator) rejectStreaming(file *protogen.File) {
 			}
 		}
 	}
+}
+
+func bundleHasWebhooks(files []*protogen.File) bool {
+	for _, file := range files {
+		if fileHasWebhooks(file) {
+			return true
+		}
+	}
+	return false
 }
 
 func fileHasWebhooks(file *protogen.File) bool {

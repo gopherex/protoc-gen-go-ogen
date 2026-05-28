@@ -8,13 +8,22 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	AdminHandler
 	CoverageHandler
 	UploadsHandler
 	UsersHandler
-	// NewError creates *ErrorStatusCode from error returned by handler.
+}
+
+// AdminHandler handles operations described by OpenAPI v3 specification.
+//
+// x-ogen-operation-group: Admin
+type AdminHandler interface {
+	// GetHealth implements getHealth operation.
 	//
-	// Used for common default response.
-	NewError(ctx context.Context, err error) *ErrorStatusCode
+	// Get health.
+	//
+	// GET /v1/admin/health
+	GetHealth(ctx context.Context) (*GetHealthResponse, error)
 }
 
 // CoverageHandler handles operations described by OpenAPI v3 specification.
@@ -26,7 +35,7 @@ type CoverageHandler interface {
 	// Echo schema coverage payload.
 	//
 	// POST /v1/coverage/echo
-	EchoCoverage(ctx context.Context, req *EchoCoverageRequest) (*EchoCoverageResponse, error)
+	EchoCoverage(ctx context.Context, req *EchoCoverageRequest) (EchoCoverageRes, error)
 }
 
 // UploadsHandler handles operations described by OpenAPI v3 specification.
@@ -38,13 +47,13 @@ type UploadsHandler interface {
 	// Create post with files.
 	//
 	// POST /v1/posts
-	CreatePost(ctx context.Context, req *CreatePostRequestMultipart) error
+	CreatePost(ctx context.Context, req *CreatePostRequestMultipart) (CreatePostRes, error)
 	// UploadAvatar implements uploadAvatar operation.
 	//
 	// Upload avatar.
 	//
 	// POST /v1/avatar
-	UploadAvatar(ctx context.Context, req UploadAvatarReq) error
+	UploadAvatar(ctx context.Context, req UploadAvatarReq) (UploadAvatarRes, error)
 }
 
 // UsersHandler handles operations described by OpenAPI v3 specification.
@@ -56,13 +65,13 @@ type UsersHandler interface {
 	// Create user.
 	//
 	// POST /v1/users
-	CreateUser(ctx context.Context, req *UserInput, params CreateUserParams) (*User, error)
+	CreateUser(ctx context.Context, req *UserInput, params CreateUserParams) (CreateUserRes, error)
 	// DeleteUser implements deleteUser operation.
 	//
 	// Delete user.
 	//
 	// DELETE /v1/users/{id}
-	DeleteUser(ctx context.Context, params DeleteUserParams) error
+	DeleteUser(ctx context.Context, params DeleteUserParams) (DeleteUserRes, error)
 	// GetUser implements getUser operation.
 	//
 	// Get user.
@@ -74,7 +83,7 @@ type UsersHandler interface {
 	// List users.
 	//
 	// GET /v1/users
-	ListUsers(ctx context.Context, params ListUsersParams) (*ListUsersResponse, error)
+	ListUsers(ctx context.Context, params ListUsersParams) (ListUsersRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and

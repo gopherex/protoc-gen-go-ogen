@@ -18,8 +18,8 @@ var _ Handler = UnimplementedHandler{}
 // Create post with files.
 //
 // POST /v1/posts
-func (UnimplementedHandler) CreatePost(ctx context.Context, req *CreatePostRequestMultipart) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) CreatePost(ctx context.Context, req *CreatePostRequestMultipart) (r CreatePostRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // CreateUser implements createUser operation.
@@ -27,7 +27,7 @@ func (UnimplementedHandler) CreatePost(ctx context.Context, req *CreatePostReque
 // Create user.
 //
 // POST /v1/users
-func (UnimplementedHandler) CreateUser(ctx context.Context, req *UserInput, params CreateUserParams) (r *User, _ error) {
+func (UnimplementedHandler) CreateUser(ctx context.Context, req *UserInput, params CreateUserParams) (r CreateUserRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -36,8 +36,8 @@ func (UnimplementedHandler) CreateUser(ctx context.Context, req *UserInput, para
 // Delete user.
 //
 // DELETE /v1/users/{id}
-func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserParams) error {
-	return ht.ErrNotImplemented
+func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserParams) (r DeleteUserRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 // EchoCoverage implements echoCoverage operation.
@@ -45,7 +45,16 @@ func (UnimplementedHandler) DeleteUser(ctx context.Context, params DeleteUserPar
 // Echo schema coverage payload.
 //
 // POST /v1/coverage/echo
-func (UnimplementedHandler) EchoCoverage(ctx context.Context, req *EchoCoverageRequest) (r *EchoCoverageResponse, _ error) {
+func (UnimplementedHandler) EchoCoverage(ctx context.Context, req *EchoCoverageRequest) (r EchoCoverageRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetHealth implements getHealth operation.
+//
+// Get health.
+//
+// GET /v1/admin/health
+func (UnimplementedHandler) GetHealth(ctx context.Context) (r *GetHealthResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -63,7 +72,7 @@ func (UnimplementedHandler) GetUser(ctx context.Context, params GetUserParams) (
 // List users.
 //
 // GET /v1/users
-func (UnimplementedHandler) ListUsers(ctx context.Context, params ListUsersParams) (r *ListUsersResponse, _ error) {
+func (UnimplementedHandler) ListUsers(ctx context.Context, params ListUsersParams) (r ListUsersRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -72,16 +81,8 @@ func (UnimplementedHandler) ListUsers(ctx context.Context, params ListUsersParam
 // Upload avatar.
 //
 // POST /v1/avatar
-func (UnimplementedHandler) UploadAvatar(ctx context.Context, req UploadAvatarReq) error {
-	return ht.ErrNotImplemented
-}
-
-// NewError creates *ErrorStatusCode from error returned by handler.
-//
-// Used for common default response.
-func (UnimplementedHandler) NewError(ctx context.Context, err error) (r *ErrorStatusCode) {
-	r = new(ErrorStatusCode)
-	return r
+func (UnimplementedHandler) UploadAvatar(ctx context.Context, req UploadAvatarReq) (r UploadAvatarRes, _ error) {
+	return r, ht.ErrNotImplemented
 }
 
 var _ WebhookHandler = UnimplementedHandler{}

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	rn7AllowedHeaders = map[string]string{
+	rn9AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 	rn6AllowedHeaders = map[string]string{
@@ -79,29 +79,68 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'a': // Prefix: "avatar"
+			case 'a': // Prefix: "a"
 
-				if l := len("avatar"); len(elem) >= l && elem[0:l] == "avatar" {
+				if l := len("a"); len(elem) >= l && elem[0:l] == "a" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "POST":
-						s.handleUploadAvatarRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "POST",
-							allowedHeaders: rn7AllowedHeaders,
-							acceptPost:     "image/png",
-							acceptPatch:    "",
-						})
+					break
+				}
+				switch elem[0] {
+				case 'd': // Prefix: "dmin/health"
+
+					if l := len("dmin/health"); len(elem) >= l && elem[0:l] == "dmin/health" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleGetHealthRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
+				case 'v': // Prefix: "vatar"
+
+					if l := len("vatar"); len(elem) >= l && elem[0:l] == "vatar" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleUploadAvatarRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "POST",
+								allowedHeaders: rn9AllowedHeaders,
+								acceptPost:     "image/png",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
 				}
 
 			case 'c': // Prefix: "coverage/echo"
@@ -322,29 +361,68 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'a': // Prefix: "avatar"
+			case 'a': // Prefix: "a"
 
-				if l := len("avatar"); len(elem) >= l && elem[0:l] == "avatar" {
+				if l := len("a"); len(elem) >= l && elem[0:l] == "a" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "POST":
-						r.name = UploadAvatarOperation
-						r.summary = "Upload avatar"
-						r.operationID = "uploadAvatar"
-						r.operationGroup = "Uploads"
-						r.pathPattern = "/v1/avatar"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'd': // Prefix: "dmin/health"
+
+					if l := len("dmin/health"); len(elem) >= l && elem[0:l] == "dmin/health" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = GetHealthOperation
+							r.summary = "Get health"
+							r.operationID = "getHealth"
+							r.operationGroup = "Admin"
+							r.pathPattern = "/v1/admin/health"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'v': // Prefix: "vatar"
+
+					if l := len("vatar"); len(elem) >= l && elem[0:l] == "vatar" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = UploadAvatarOperation
+							r.summary = "Upload avatar"
+							r.operationID = "uploadAvatar"
+							r.operationGroup = "Uploads"
+							r.pathPattern = "/v1/avatar"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
 			case 'c': // Prefix: "coverage/echo"

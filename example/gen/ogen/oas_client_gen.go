@@ -86,9 +86,22 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
+	AdminInvoker
 	CoverageInvoker
 	UploadsInvoker
 	UsersInvoker
+}
+
+// AdminInvoker invokes operations described by OpenAPI v3 specification.
+//
+// x-gen-operation-group: Admin
+type AdminInvoker interface {
+	// GetHealth invokes getHealth operation.
+	//
+	// Get health.
+	//
+	// GET /v1/admin/health
+	GetHealth(ctx context.Context, options ...RequestOption) (*GetHealthResponse, error)
 }
 
 // CoverageInvoker invokes operations described by OpenAPI v3 specification.
@@ -100,7 +113,7 @@ type CoverageInvoker interface {
 	// Echo schema coverage payload.
 	//
 	// POST /v1/coverage/echo
-	EchoCoverage(ctx context.Context, request *EchoCoverageRequest, options ...RequestOption) (*EchoCoverageResponse, error)
+	EchoCoverage(ctx context.Context, request *EchoCoverageRequest, options ...RequestOption) (EchoCoverageRes, error)
 }
 
 // UploadsInvoker invokes operations described by OpenAPI v3 specification.
@@ -112,13 +125,13 @@ type UploadsInvoker interface {
 	// Create post with files.
 	//
 	// POST /v1/posts
-	CreatePost(ctx context.Context, request *CreatePostRequestMultipart, options ...RequestOption) error
+	CreatePost(ctx context.Context, request *CreatePostRequestMultipart, options ...RequestOption) (CreatePostRes, error)
 	// UploadAvatar invokes uploadAvatar operation.
 	//
 	// Upload avatar.
 	//
 	// POST /v1/avatar
-	UploadAvatar(ctx context.Context, request UploadAvatarReq, options ...RequestOption) error
+	UploadAvatar(ctx context.Context, request UploadAvatarReq, options ...RequestOption) (UploadAvatarRes, error)
 }
 
 // UsersInvoker invokes operations described by OpenAPI v3 specification.
@@ -130,13 +143,13 @@ type UsersInvoker interface {
 	// Create user.
 	//
 	// POST /v1/users
-	CreateUser(ctx context.Context, request *UserInput, params CreateUserParams, options ...RequestOption) (*User, error)
+	CreateUser(ctx context.Context, request *UserInput, params CreateUserParams, options ...RequestOption) (CreateUserRes, error)
 	// DeleteUser invokes deleteUser operation.
 	//
 	// Delete user.
 	//
 	// DELETE /v1/users/{id}
-	DeleteUser(ctx context.Context, params DeleteUserParams, options ...RequestOption) error
+	DeleteUser(ctx context.Context, params DeleteUserParams, options ...RequestOption) (DeleteUserRes, error)
 	// GetUser invokes getUser operation.
 	//
 	// Get user.
@@ -148,7 +161,7 @@ type UsersInvoker interface {
 	// List users.
 	//
 	// GET /v1/users
-	ListUsers(ctx context.Context, params ListUsersParams, options ...RequestOption) (*ListUsersResponse, error)
+	ListUsers(ctx context.Context, params ListUsersParams, options ...RequestOption) (ListUsersRes, error)
 }
 
 // Client implements OAS client.
@@ -180,12 +193,12 @@ func NewClient(serverURL string, opts ...ClientOption) (*Client, error) {
 // Create post with files.
 //
 // POST /v1/posts
-func (c *Client) CreatePost(ctx context.Context, request *CreatePostRequestMultipart, options ...RequestOption) error {
-	_, err := c.sendCreatePost(ctx, request, options...)
-	return err
+func (c *Client) CreatePost(ctx context.Context, request *CreatePostRequestMultipart, options ...RequestOption) (CreatePostRes, error) {
+	res, err := c.sendCreatePost(ctx, request, options...)
+	return res, err
 }
 
-func (c *Client) sendCreatePost(ctx context.Context, request *CreatePostRequestMultipart, requestOptions ...RequestOption) (res *CreatePostOK, err error) {
+func (c *Client) sendCreatePost(ctx context.Context, request *CreatePostRequestMultipart, requestOptions ...RequestOption) (res CreatePostRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("createPost"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -275,12 +288,12 @@ func (c *Client) sendCreatePost(ctx context.Context, request *CreatePostRequestM
 // Create user.
 //
 // POST /v1/users
-func (c *Client) CreateUser(ctx context.Context, request *UserInput, params CreateUserParams, options ...RequestOption) (*User, error) {
+func (c *Client) CreateUser(ctx context.Context, request *UserInput, params CreateUserParams, options ...RequestOption) (CreateUserRes, error) {
 	res, err := c.sendCreateUser(ctx, request, params, options...)
 	return res, err
 }
 
-func (c *Client) sendCreateUser(ctx context.Context, request *UserInput, params CreateUserParams, requestOptions ...RequestOption) (res *User, err error) {
+func (c *Client) sendCreateUser(ctx context.Context, request *UserInput, params CreateUserParams, requestOptions ...RequestOption) (res CreateUserRes, err error) {
 	// Validate request before sending.
 	if err := func() error {
 		if err := request.Validate(); err != nil {
@@ -396,12 +409,12 @@ func (c *Client) sendCreateUser(ctx context.Context, request *UserInput, params 
 // Delete user.
 //
 // DELETE /v1/users/{id}
-func (c *Client) DeleteUser(ctx context.Context, params DeleteUserParams, options ...RequestOption) error {
-	_, err := c.sendDeleteUser(ctx, params, options...)
-	return err
+func (c *Client) DeleteUser(ctx context.Context, params DeleteUserParams, options ...RequestOption) (DeleteUserRes, error) {
+	res, err := c.sendDeleteUser(ctx, params, options...)
+	return res, err
 }
 
-func (c *Client) sendDeleteUser(ctx context.Context, params DeleteUserParams, requestOptions ...RequestOption) (res *DeleteUserNoContent, err error) {
+func (c *Client) sendDeleteUser(ctx context.Context, params DeleteUserParams, requestOptions ...RequestOption) (res DeleteUserRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("deleteUser"),
 		semconv.HTTPRequestMethodKey.String("DELETE"),
@@ -506,12 +519,12 @@ func (c *Client) sendDeleteUser(ctx context.Context, params DeleteUserParams, re
 // Echo schema coverage payload.
 //
 // POST /v1/coverage/echo
-func (c *Client) EchoCoverage(ctx context.Context, request *EchoCoverageRequest, options ...RequestOption) (*EchoCoverageResponse, error) {
+func (c *Client) EchoCoverage(ctx context.Context, request *EchoCoverageRequest, options ...RequestOption) (EchoCoverageRes, error) {
 	res, err := c.sendEchoCoverage(ctx, request, options...)
 	return res, err
 }
 
-func (c *Client) sendEchoCoverage(ctx context.Context, request *EchoCoverageRequest, requestOptions ...RequestOption) (res *EchoCoverageResponse, err error) {
+func (c *Client) sendEchoCoverage(ctx context.Context, request *EchoCoverageRequest, requestOptions ...RequestOption) (res EchoCoverageRes, err error) {
 	// Validate request before sending.
 	if err := func() error {
 		if err := request.Validate(); err != nil {
@@ -598,6 +611,98 @@ func (c *Client) sendEchoCoverage(ctx context.Context, request *EchoCoverageRequ
 
 	stage = "DecodeResponse"
 	result, err := decodeEchoCoverageResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// GetHealth invokes getHealth operation.
+//
+// Get health.
+//
+// GET /v1/admin/health
+func (c *Client) GetHealth(ctx context.Context, options ...RequestOption) (*GetHealthResponse, error) {
+	res, err := c.sendGetHealth(ctx, options...)
+	return res, err
+}
+
+func (c *Client) sendGetHealth(ctx context.Context, requestOptions ...RequestOption) (res *GetHealthResponse, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getHealth"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1/admin/health"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetHealthOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	var reqCfg requestConfig
+	reqCfg.setDefaults(c.baseClient)
+	for _, o := range requestOptions {
+		o(&reqCfg)
+	}
+
+	stage = "BuildURL"
+	u := c.serverURL
+	if override := reqCfg.ServerURL; override != nil {
+		u = override
+	}
+	u = uri.Clone(u)
+	var pathParts [1]string
+	pathParts[0] = "/v1/admin/health"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	if err := reqCfg.onRequest(r); err != nil {
+		return res, errors.Wrap(err, "edit request")
+	}
+
+	stage = "SendRequest"
+	resp, err := reqCfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	if err := reqCfg.onResponse(resp); err != nil {
+		return res, errors.Wrap(err, "edit response")
+	}
+
+	stage = "DecodeResponse"
+	result, err := decodeGetHealthResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}
@@ -737,12 +842,12 @@ func (c *Client) sendGetUser(ctx context.Context, params GetUserParams, requestO
 // List users.
 //
 // GET /v1/users
-func (c *Client) ListUsers(ctx context.Context, params ListUsersParams, options ...RequestOption) (*ListUsersResponse, error) {
+func (c *Client) ListUsers(ctx context.Context, params ListUsersParams, options ...RequestOption) (ListUsersRes, error) {
 	res, err := c.sendListUsers(ctx, params, options...)
 	return res, err
 }
 
-func (c *Client) sendListUsers(ctx context.Context, params ListUsersParams, requestOptions ...RequestOption) (res *ListUsersResponse, err error) {
+func (c *Client) sendListUsers(ctx context.Context, params ListUsersParams, requestOptions ...RequestOption) (res ListUsersRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("listUsers"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -884,12 +989,12 @@ func (c *Client) sendListUsers(ctx context.Context, params ListUsersParams, requ
 // Upload avatar.
 //
 // POST /v1/avatar
-func (c *Client) UploadAvatar(ctx context.Context, request UploadAvatarReq, options ...RequestOption) error {
-	_, err := c.sendUploadAvatar(ctx, request, options...)
-	return err
+func (c *Client) UploadAvatar(ctx context.Context, request UploadAvatarReq, options ...RequestOption) (UploadAvatarRes, error) {
+	res, err := c.sendUploadAvatar(ctx, request, options...)
+	return res, err
 }
 
-func (c *Client) sendUploadAvatar(ctx context.Context, request UploadAvatarReq, requestOptions ...RequestOption) (res *UploadAvatarOK, err error) {
+func (c *Client) sendUploadAvatar(ctx context.Context, request UploadAvatarReq, requestOptions ...RequestOption) (res UploadAvatarRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("uploadAvatar"),
 		semconv.HTTPRequestMethodKey.String("POST"),

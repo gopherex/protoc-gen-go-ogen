@@ -11,8 +11,8 @@ existing gRPC service. In one `protoc` run it:
 4. generates an **`OgenAdapter`** that implements the ogen `Handler` by
    delegating to your gRPC service implementation.
 
-The result: you write a normal gRPC service, annotate the proto with HTTP
-bindings, and get a typed REST server (params, validation, idempotency,
+The result: you write normal gRPC services, annotate the proto files with HTTP
+bindings, and get one typed REST server (params, validation, idempotency,
 webhooks, file upload) without hand-writing any HTTP glue.
 
 `protoc-gen-ogen` is **unary-only**. Streaming RPCs are rejected at generation
@@ -50,7 +50,10 @@ make build          # -> bin/protoc-gen-ogen, bin/protoc-gen-go, bin/protoc-gen-
 
 ## Usage
 
-Import the options and annotate your proto:
+Import the options and annotate your proto files. All files passed to `protoc`
+with `option (ogen.file).generate_openapi = true` are bundled into one OpenAPI
+document; document metadata and output settings come from the first marked file
+in the `protoc` request.
 
 ```proto
 import "ogen/ogen.proto";
@@ -92,7 +95,7 @@ protoc \
   --ogen_out=gen --ogen_opt=paths=source_relative \
   --ogen_opt=ogen_config=ogen.yml \
   --ogen_opt=openapi_out=gen \
-  api.proto
+  api.proto admin.proto
 ```
 
 If your proto uses `protoc-gen-validate` rules, also add its proto to the
@@ -159,13 +162,16 @@ back, err := app.UserFromOgen(o)   // *ogen.User -> *pb.User
 One `protoc` run produces, all in `--ogen_out`:
 
 - `api.pb.go`, `api_grpc.pb.go` — standard `protoc-gen-go` / `protoc-gen-go-grpc`.
-- `openapi.yaml` — the OpenAPI document (only when `openapi_out` is set).
+- `openapi.yaml` — one OpenAPI document containing every marked service (only
+  when `openapi_out` is set).
 - `<ogen_target>/` — the ogen package (client, server, types, validators).
-- `api.converters.go` — `ToOgen`/`FromOgen` between pb and ogen types (in the pb
-  package).
-- `api.ogenadapter.go` — `OgenAdapter` implementing the ogen `Handler` (and
-  `WebhookHandler`) over the gRPC service stubs.
-- `api.converters_test.go` — faker round-trip tests (when ogen's
+- `*.converters.go` — `ToOgen`/`FromOgen` between pb and ogen types, emitted
+  next to each marked proto package.
+- `*.ogenadapter.go` — one `OgenAdapter` per marked Go package implementing the
+  ogen `Handler` (and `WebhookHandler`) over the gRPC service stubs. Aggregate
+  adapter generation currently requires all marked files to share one
+  `go_package`.
+- `*.converters_test.go` — faker round-trip tests (when ogen's
   `debug/example_tests` feature is enabled).
 
 ## Proto options
@@ -249,7 +255,7 @@ streaming media-type extension; it is not SSE/WebSocket.)
 
 ```bash
 make build           # build the three plugins into bin/
-make gen-test        # run protoc against example/golden.proto (full pipeline)
+make gen-test        # run protoc against the multi-file example (full pipeline)
 go test ./...        # plugin + generated example
 cd example/gen/ogen && go test ./...
 make gen-opts        # regenerate ogen/ogen.pb.go from ogen/ogen.proto (easyp)
@@ -262,10 +268,10 @@ Repository layout:
   (in-process ogen), `converters*.go` (proto↔ogen), `adapter.go` (gRPC adapter).
 - `ogen/` — `ogen.proto` options and generated `ogen.pb.go`.
 - `convert/`, `grpcbridge/` — runtime packages imported by generated code.
-- `example/golden.proto` — fixture exercising scalars, optional, repeated, map,
-  enum, oneof, WKT, PGV validation, idempotency, webhooks, file upload.
-  Generated output under `example/gen/` is git-ignored and rebuilt by
-  `make gen-test`.
+- `example/golden.proto`, `example/admin.proto` — multi-file fixture exercising
+  aggregation plus scalars, optional, repeated, map, enum, oneof, WKT, PGV
+  validation, idempotency, webhooks, file upload. Generated output under
+  `example/gen/` is rebuilt by `make gen-test`.
 
 ## Scope
 

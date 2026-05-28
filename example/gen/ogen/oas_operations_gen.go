@@ -10,6 +10,7 @@ const (
 	CreateUserOperation         OperationName = "CreateUser"
 	DeleteUserOperation         OperationName = "DeleteUser"
 	EchoCoverageOperation       OperationName = "EchoCoverage"
+	GetHealthOperation          OperationName = "GetHealth"
 	GetUserOperation            OperationName = "GetUser"
 	ListUsersOperation          OperationName = "ListUsers"
 	UploadAvatarOperation       OperationName = "UploadAvatar"

@@ -336,6 +336,15 @@ func (s *Error) SetFake() {
 }
 
 // SetFake set fake values.
+func (s *GetHealthResponse) SetFake() {
+	{
+		{
+			s.Status = "string"
+		}
+	}
+}
+
+// SetFake set fake values.
 func (s *ListUsersResponse) SetFake() {
 	{
 		{

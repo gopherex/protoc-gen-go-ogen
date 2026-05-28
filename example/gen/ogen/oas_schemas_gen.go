@@ -3,7 +3,6 @@
 package ogen
 
 import (
-	"fmt"
 	"io"
 	"net/url"
 	"time"
@@ -13,10 +12,6 @@ import (
 	"github.com/google/uuid"
 	ht "github.com/ogen-go/ogen/http"
 )
-
-func (s *ErrorStatusCode) Error() string {
-	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
-}
 
 // Ref: #/components/schemas/Address
 type Address struct {
@@ -707,6 +702,8 @@ func (s *CoverageStringInt64Map) init() CoverageStringInt64Map {
 // CreatePostOK is response for CreatePost operation.
 type CreatePostOK struct{}
 
+func (*CreatePostOK) createPostRes() {}
+
 // Ref: #/components/schemas/CreatePostRequest
 type CreatePostRequestMultipart struct {
 	Attachments []ht.MultipartFile `json:"attachments"`
@@ -758,6 +755,8 @@ func (s *CreatePostRequestMultipart) SetTitle(val string) {
 // DeleteUserNoContent is response for DeleteUser operation.
 type DeleteUserNoContent struct{}
 
+func (*DeleteUserNoContent) deleteUserRes() {}
+
 // Ref: #/components/schemas/EchoCoverageRequest
 type EchoCoverageRequest struct {
 	Payload Coverage `json:"payload"`
@@ -787,6 +786,8 @@ func (s *EchoCoverageResponse) GetPayload() Coverage {
 func (s *EchoCoverageResponse) SetPayload(val Coverage) {
 	s.Payload = val
 }
+
+func (*EchoCoverageResponse) echoCoverageRes() {}
 
 // Ref: #/components/schemas/Error
 type Error struct {
@@ -853,7 +854,29 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
+func (*ErrorStatusCode) createPostRes()         {}
+func (*ErrorStatusCode) createUserRes()         {}
+func (*ErrorStatusCode) deleteUserRes()         {}
+func (*ErrorStatusCode) echoCoverageRes()       {}
+func (*ErrorStatusCode) getUserRes()            {}
+func (*ErrorStatusCode) listUsersRes()          {}
+func (*ErrorStatusCode) uploadAvatarRes()       {}
 func (*ErrorStatusCode) userChangedWebhookRes() {}
+
+// Ref: #/components/schemas/GetHealthResponse
+type GetHealthResponse struct {
+	Status string `json:"status"`
+}
+
+// GetStatus returns the value of Status.
+func (s *GetHealthResponse) GetStatus() string {
+	return s.Status
+}
+
+// SetStatus sets the value of Status.
+func (s *GetHealthResponse) SetStatus(val string) {
+	s.Status = val
+}
 
 type ListUsersFilters map[string]string
 
@@ -891,6 +914,8 @@ func (s *ListUsersResponse) SetNextPageToken(val OptString) {
 func (s *ListUsersResponse) SetUsers(val []User) {
 	s.Users = val
 }
+
+func (*ListUsersResponse) listUsersRes() {}
 
 // Ref: #/components/schemas/NestedCoverage
 type NestedCoverage struct {
@@ -2345,6 +2370,8 @@ func (o OptUserStatus) Or(d UserStatus) UserStatus {
 // UploadAvatarOK is response for UploadAvatar operation.
 type UploadAvatarOK struct{}
 
+func (*UploadAvatarOK) uploadAvatarRes() {}
+
 type UploadAvatarReq struct {
 	Data io.Reader
 }
@@ -2463,7 +2490,8 @@ func (s *User) SetUpdatedAt(val OptDateTime) {
 	s.UpdatedAt = val
 }
 
-func (*User) getUserRes() {}
+func (*User) createUserRes() {}
+func (*User) getUserRes()    {}
 
 // Ref: #/components/schemas/UserChangedPayload
 type UserChangedPayload struct {

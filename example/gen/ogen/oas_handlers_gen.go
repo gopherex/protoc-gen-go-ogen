@@ -127,7 +127,7 @@ func (s *Server) handleCreatePostRequest(args [0]string, argsEscaped bool, w htt
 		}
 	}()
 
-	var response *CreatePostOK
+	var response CreatePostRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -143,7 +143,7 @@ func (s *Server) handleCreatePostRequest(args [0]string, argsEscaped bool, w htt
 		type (
 			Request  = *CreatePostRequestMultipart
 			Params   = struct{}
-			Response = *CreatePostOK
+			Response = CreatePostRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -154,27 +154,16 @@ func (s *Server) handleCreatePostRequest(args [0]string, argsEscaped bool, w htt
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.CreatePost(ctx, request)
+				response, err = s.h.CreatePost(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.CreatePost(ctx, request)
+		response, err = s.h.CreatePost(ctx, request)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
@@ -291,7 +280,7 @@ func (s *Server) handleCreateUserRequest(args [0]string, argsEscaped bool, w htt
 		}
 	}()
 
-	var response *User
+	var response CreateUserRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -312,7 +301,7 @@ func (s *Server) handleCreateUserRequest(args [0]string, argsEscaped bool, w htt
 		type (
 			Request  = *UserInput
 			Params   = CreateUserParams
-			Response = *User
+			Response = CreateUserRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -331,19 +320,8 @@ func (s *Server) handleCreateUserRequest(args [0]string, argsEscaped bool, w htt
 		response, err = s.h.CreateUser(ctx, request, params)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
@@ -445,7 +423,7 @@ func (s *Server) handleDeleteUserRequest(args [1]string, argsEscaped bool, w htt
 
 	var rawBody []byte
 
-	var response *DeleteUserNoContent
+	var response DeleteUserRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -466,7 +444,7 @@ func (s *Server) handleDeleteUserRequest(args [1]string, argsEscaped bool, w htt
 		type (
 			Request  = struct{}
 			Params   = DeleteUserParams
-			Response = *DeleteUserNoContent
+			Response = DeleteUserRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -477,27 +455,16 @@ func (s *Server) handleDeleteUserRequest(args [1]string, argsEscaped bool, w htt
 			mreq,
 			unpackDeleteUserParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.DeleteUser(ctx, params)
+				response, err = s.h.DeleteUser(ctx, params)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.DeleteUser(ctx, params)
+		response, err = s.h.DeleteUser(ctx, params)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
@@ -604,7 +571,7 @@ func (s *Server) handleEchoCoverageRequest(args [0]string, argsEscaped bool, w h
 		}
 	}()
 
-	var response *EchoCoverageResponse
+	var response EchoCoverageRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -620,7 +587,7 @@ func (s *Server) handleEchoCoverageRequest(args [0]string, argsEscaped bool, w h
 		type (
 			Request  = *EchoCoverageRequest
 			Params   = struct{}
-			Response = *EchoCoverageResponse
+			Response = EchoCoverageRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -639,23 +606,136 @@ func (s *Server) handleEchoCoverageRequest(args [0]string, argsEscaped bool, w h
 		response, err = s.h.EchoCoverage(ctx, request)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
 	if err := encodeEchoCoverageResponse(response, w, span); err != nil {
+		defer recordError("EncodeResponse", err)
+		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
+			s.cfg.ErrorHandler(ctx, w, r, err)
+		}
+		return
+	}
+}
+
+// handleGetHealthRequest handles getHealth operation.
+//
+// Get health.
+//
+// GET /v1/admin/health
+func (s *Server) handleGetHealthRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+	statusWriter := &codeRecorder{ResponseWriter: w}
+	w = statusWriter
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getHealth"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.HTTPRouteKey.String("/v1/admin/health"),
+	}
+	// Add attributes from config.
+	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
+
+	// Start a span for this request.
+	ctx, span := s.cfg.Tracer.Start(r.Context(), GetHealthOperation,
+		trace.WithAttributes(otelAttrs...),
+		serverSpanKind,
+	)
+	defer span.End()
+
+	// Add Labeler to context.
+	labeler := &Labeler{attrs: otelAttrs}
+	ctx = contextWithLabeler(ctx, labeler)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		elapsedDuration := time.Since(startTime)
+
+		attrSet := labeler.AttributeSet()
+		attrs := attrSet.ToSlice()
+		code := statusWriter.status
+		if code != 0 {
+			codeAttr := semconv.HTTPResponseStatusCode(code)
+			attrs = append(attrs, codeAttr)
+			span.SetAttributes(codeAttr)
+		}
+		attrOpt := metric.WithAttributes(attrs...)
+
+		// Increment request counter.
+		s.requests.Add(ctx, 1, attrOpt)
+
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		s.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), attrOpt)
+	}()
+
+	var (
+		recordError = func(stage string, err error) {
+			span.RecordError(err)
+
+			// https://opentelemetry.io/docs/specs/semconv/http/http-spans/#status
+			// Span Status MUST be left unset if HTTP status code was in the 1xx, 2xx or 3xx ranges,
+			// unless there was another error (e.g., network error receiving the response body; or 3xx codes with
+			// max redirects exceeded), in which case status MUST be set to Error.
+			code := statusWriter.status
+			if code < 100 || code >= 500 {
+				span.SetStatus(codes.Error, stage)
+			}
+
+			attrSet := labeler.AttributeSet()
+			attrs := attrSet.ToSlice()
+			if code != 0 {
+				attrs = append(attrs, semconv.HTTPResponseStatusCode(code))
+			}
+
+			s.errors.Add(ctx, 1, metric.WithAttributes(attrs...))
+		}
+		err error
+	)
+
+	var rawBody []byte
+
+	var response *GetHealthResponse
+	if m := s.cfg.Middleware; m != nil {
+		mreq := middleware.Request{
+			Context:          ctx,
+			OperationName:    GetHealthOperation,
+			OperationSummary: "Get health",
+			OperationID:      "getHealth",
+			Body:             nil,
+			RawBody:          rawBody,
+			Params:           middleware.Parameters{},
+			Raw:              r,
+		}
+
+		type (
+			Request  = struct{}
+			Params   = struct{}
+			Response = *GetHealthResponse
+		)
+		response, err = middleware.HookMiddleware[
+			Request,
+			Params,
+			Response,
+		](
+			m,
+			mreq,
+			nil,
+			func(ctx context.Context, request Request, params Params) (response Response, err error) {
+				response, err = s.h.GetHealth(ctx)
+				return response, err
+			},
+		)
+	} else {
+		response, err = s.h.GetHealth(ctx)
+	}
+	if err != nil {
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+
+	if err := encodeGetHealthResponse(response, w, span); err != nil {
 		defer recordError("EncodeResponse", err)
 		if !errors.Is(err, ht.ErrInternalServerErrorResponse) {
 			s.cfg.ErrorHandler(ctx, w, r, err)
@@ -797,19 +877,8 @@ func (s *Server) handleGetUserRequest(args [1]string, argsEscaped bool, w http.R
 		response, err = s.h.GetUser(ctx, params)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
@@ -911,7 +980,7 @@ func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http
 
 	var rawBody []byte
 
-	var response *ListUsersResponse
+	var response ListUsersRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -940,7 +1009,7 @@ func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http
 		type (
 			Request  = struct{}
 			Params   = ListUsersParams
-			Response = *ListUsersResponse
+			Response = ListUsersRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -959,19 +1028,8 @@ func (s *Server) handleListUsersRequest(args [0]string, argsEscaped bool, w http
 		response, err = s.h.ListUsers(ctx, params)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
@@ -1078,7 +1136,7 @@ func (s *Server) handleUploadAvatarRequest(args [0]string, argsEscaped bool, w h
 		}
 	}()
 
-	var response *UploadAvatarOK
+	var response UploadAvatarRes
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -1094,7 +1152,7 @@ func (s *Server) handleUploadAvatarRequest(args [0]string, argsEscaped bool, w h
 		type (
 			Request  = UploadAvatarReq
 			Params   = struct{}
-			Response = *UploadAvatarOK
+			Response = UploadAvatarRes
 		)
 		response, err = middleware.HookMiddleware[
 			Request,
@@ -1105,27 +1163,16 @@ func (s *Server) handleUploadAvatarRequest(args [0]string, argsEscaped bool, w h
 			mreq,
 			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				err = s.h.UploadAvatar(ctx, request)
+				response, err = s.h.UploadAvatar(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		err = s.h.UploadAvatar(ctx, request)
+		response, err = s.h.UploadAvatar(ctx, request)
 	}
 	if err != nil {
-		if errRes, ok := errors.Into[*ErrorStatusCode](err); ok {
-			if err := encodeErrorResponse(errRes, w, span); err != nil {
-				defer recordError("Internal", err)
-			}
-			return
-		}
-		if errors.Is(err, ht.ErrNotImplemented) {
-			s.cfg.ErrorHandler(ctx, w, r, err)
-			return
-		}
-		if err := encodeErrorResponse(s.h.NewError(ctx, err), w, span); err != nil {
-			defer recordError("Internal", err)
-		}
+		defer recordError("Internal", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
 		return
 	}
 
