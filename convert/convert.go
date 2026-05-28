@@ -4,9 +4,16 @@
 package convert
 
 import (
+	"strings"
 	"time"
 
+	"github.com/go-faster/jx"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -87,3 +94,98 @@ func DurationFromProto(d *durationpb.Duration) time.Duration {
 
 // DurationToProto converts a time.Duration to a protobuf Duration.
 func DurationToProto(d time.Duration) *durationpb.Duration { return durationpb.New(d) }
+
+// FieldMaskToString renders a protobuf FieldMask as comma-separated paths (empty
+// when nil).
+func FieldMaskToString(m *fieldmaskpb.FieldMask) string {
+	if m == nil {
+		return ""
+	}
+	return strings.Join(m.GetPaths(), ",")
+}
+
+// StringToFieldMask parses comma-separated paths into a protobuf FieldMask (nil
+// when empty).
+func StringToFieldMask(s string) *fieldmaskpb.FieldMask {
+	if s == "" {
+		return nil
+	}
+	return &fieldmaskpb.FieldMask{Paths: strings.Split(s, ",")}
+}
+
+// wktToJSON marshals a free-form JSON well-known type to its protojson form as
+// jx.Raw. A nil message yields a nil raw (omitted from the ogen payload).
+func wktToJSON(m proto.Message, isNil bool) (jx.Raw, error) {
+	if isNil {
+		return nil, nil
+	}
+	b, err := protojson.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return jx.Raw(b), nil
+}
+
+// isJSONNull reports whether a raw JSON value is absent or the literal null.
+func isJSONNull(r jx.Raw) bool { return len(r) == 0 || string(r) == "null" }
+
+// StructToJSON converts a protobuf Struct to protojson jx.Raw.
+func StructToJSON(s *structpb.Struct) (jx.Raw, error) { return wktToJSON(s, s == nil) }
+
+// JSONToStruct converts protojson jx.Raw back to a protobuf Struct.
+func JSONToStruct(r jx.Raw) (*structpb.Struct, error) {
+	if isJSONNull(r) {
+		return nil, nil
+	}
+	v := &structpb.Struct{}
+	if err := protojson.Unmarshal(r, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// ValueToJSON converts a protobuf Value to protojson jx.Raw.
+func ValueToJSON(v *structpb.Value) (jx.Raw, error) { return wktToJSON(v, v == nil) }
+
+// JSONToValue converts protojson jx.Raw back to a protobuf Value.
+func JSONToValue(r jx.Raw) (*structpb.Value, error) {
+	if isJSONNull(r) {
+		return nil, nil
+	}
+	v := &structpb.Value{}
+	if err := protojson.Unmarshal(r, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// ListValueToJSON converts a protobuf ListValue to protojson jx.Raw.
+func ListValueToJSON(v *structpb.ListValue) (jx.Raw, error) { return wktToJSON(v, v == nil) }
+
+// JSONToListValue converts protojson jx.Raw back to a protobuf ListValue.
+func JSONToListValue(r jx.Raw) (*structpb.ListValue, error) {
+	if isJSONNull(r) {
+		return nil, nil
+	}
+	v := &structpb.ListValue{}
+	if err := protojson.Unmarshal(r, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// AnyToJSON converts a protobuf Any to protojson jx.Raw. The Any's message type
+// must be resolvable via the global type registry.
+func AnyToJSON(a *anypb.Any) (jx.Raw, error) { return wktToJSON(a, a == nil) }
+
+// JSONToAny converts protojson jx.Raw back to a protobuf Any.
+func JSONToAny(r jx.Raw) (*anypb.Any, error) {
+	if isJSONNull(r) {
+		return nil, nil
+	}
+	v := &anypb.Any{}
+	if err := protojson.Unmarshal(r, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}

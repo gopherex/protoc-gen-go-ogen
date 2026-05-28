@@ -22,9 +22,7 @@ components:
             description: Covers protobuf shapes that must map to OpenAPI and ogen.
             properties:
                 anyJsonValue: {}
-                anyValue:
-                    additionalProperties: true
-                    type: object
+                anyValue: {}
                 boolValue:
                     type: boolean
                 boolWrapper:
@@ -53,14 +51,16 @@ components:
                         - USER_STATUS_DISABLED
                         - USER_STATUS_DELETED
                     type: string
+                fieldMaskValue:
+                    format: field-mask
+                    type: string
                 fixed32Value:
                     format: int32
                     minimum: 0
                     type: integer
                 fixed64Value:
-                    format: int64
-                    minimum: 0
-                    type: integer
+                    format: uint64
+                    type: string
                 floatValue:
                     format: float
                     type: number
@@ -69,14 +69,12 @@ components:
                     type: integer
                 int64Value:
                     format: int64
-                    type: integer
+                    type: string
                 int64Wrapper:
                     format: int64
                     nullable: true
-                    type: integer
-                listValue:
-                    items: {}
-                    type: array
+                    type: string
+                listValue: {}
                 nested:
                     $ref: '#/components/schemas/NestedCoverage'
                 nestedMap:
@@ -85,7 +83,7 @@ components:
                     type: object
                 optionalInt64:
                     format: int64
-                    type: integer
+                    type: string
                 optionalString:
                     nullable: true
                     type: string
@@ -110,7 +108,7 @@ components:
                 search:
                     oneOf:
                         - type: string
-                        - format: int64
+                        - format: int32
                           type: integer
                         - $ref: '#/components/schemas/NestedCoverage'
                 sfixed32Value:
@@ -118,26 +116,24 @@ components:
                     type: integer
                 sfixed64Value:
                     format: int64
-                    type: integer
+                    type: string
                 sint32Value:
                     format: int32
                     type: integer
                 sint64Value:
                     format: int64
-                    type: integer
+                    type: string
                 stringInt64Map:
                     additionalProperties:
                         format: int64
-                        type: integer
+                        type: string
                     type: object
                 stringValue:
                     type: string
                 stringWrapper:
                     nullable: true
                     type: string
-                structValue:
-                    additionalProperties: true
-                    type: object
+                structValue: {}
                 timestampValue:
                     format: date-time
                     type: string
@@ -146,14 +142,12 @@ components:
                     minimum: 0
                     type: integer
                 uint64Value:
-                    format: int64
-                    minimum: 0
-                    type: integer
+                    format: uint64
+                    type: string
                 uint64Wrapper:
-                    format: int64
-                    minimum: 0
+                    format: uint64
                     nullable: true
-                    type: integer
+                    type: string
             type: object
             x-ogen-name: Coverage
         CreatePostRequest:
@@ -224,6 +218,9 @@ components:
             properties:
                 code:
                     type: string
+                details:
+                    items: {}
+                    type: array
                 message:
                     type: string
             required:

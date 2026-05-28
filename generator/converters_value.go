@@ -132,7 +132,14 @@ func wktName(pf *protogen.Field) string {
 // without a recursive message converter.
 func isWKT(pf *protogen.Field) bool {
 	n := wktName(pf)
-	return n == wktTimestamp || n == wktDuration || wktWrappers[n]
+	return n == wktTimestamp || n == wktDuration || n == wktFieldMask || wktWrappers[n]
+}
+
+// isWKTJSON reports whether the field is a free-form JSON well-known type
+// (Struct/Value/ListValue/Any) bridged to jx.Raw via protojson.
+func isWKTJSON(pf *protogen.Field) bool {
+	_, ok := wktJSON[wktName(pf)]
+	return ok
 }
 
 var wrapperCtor = map[string]string{
@@ -150,7 +157,7 @@ var wrapperCtor = map[string]string{
 // ---- ToOgen ----
 
 func (c *convGen) toOgenField(pf *protogen.Field, of *ir.Field) {
-	if unsupportedType(of.Type) {
+	if unsupportedType(of.Type) && !isWKTJSON(pf) {
 		c.gf.P("// ", of.Name, ": unsupported type, skipped")
 		return
 	}
@@ -192,14 +199,20 @@ func (c *convGen) elemCanError(pf *protogen.Field, ot *ir.Type, toOgen bool) boo
 	if isWKT(pf) {
 		return false
 	}
+	if isWKTJSON(pf) {
+		return true
+	}
 	if isMultipart(ot) {
 		return !toOgen // reading a multipart file can fail; wrapping cannot
 	}
 	if ot.Is(ir.KindStruct) {
 		return true
 	}
+	if ot.Is(ir.KindEnum) {
+		return true
+	}
 	if toOgen {
-		return ot.Is(ir.KindEnum) || externalImports[ot.Go()] != ""
+		return externalImports[ot.Go()] != ""
 	}
 	return false
 }
@@ -267,9 +280,19 @@ func (c *convGen) toOgenInner(pf *protogen.Field, ot *ir.Type, src string) (stri
 		return c.qual(c.conv("TimeFromProto")) + "(" + src + ")", true
 	case wktDuration:
 		return c.qual(c.conv("DurationFromProto")) + "(" + src + ")", true
+	case wktFieldMask:
+		return c.qual(c.conv("FieldMaskToString")) + "(" + src + ")", true
 	}
 	if wktWrappers[wktName(pf)] {
 		return ot.Go() + "(" + src + ".GetValue())", true
+	}
+	if kind, ok := wktJSON[wktName(pf)]; ok {
+		tmp := c.newTmp("j")
+		c.gf.P(tmp, ", err := ", c.qual(c.conv(kind+"ToJSON")), "(", src, ")")
+		c.gf.P("if err != nil {")
+		c.failLine()
+		c.gf.P("}")
+		return tmp, true
 	}
 	switch {
 	case isMultipart(ot):
@@ -381,7 +404,7 @@ func (c *convGen) toOgenOneof(oneof *protogen.Oneof, of *ir.Field) {
 // ---- FromOgen ----
 
 func (c *convGen) fromOgenField(pf *protogen.Field, of *ir.Field) {
-	if unsupportedType(of.Type) {
+	if unsupportedType(of.Type) && !isWKTJSON(pf) {
 		c.gf.P("// ", pf.GoName, ": unsupported type, skipped")
 		return
 	}
@@ -482,10 +505,20 @@ func (c *convGen) fromOgenInner(pf *protogen.Field, ot *ir.Type, src string) (st
 		return c.qual(c.conv("TimeToProto")) + "(" + src + ")", true
 	case wktDuration:
 		return c.qual(c.conv("DurationToProto")) + "(" + src + ")", true
+	case wktFieldMask:
+		return c.qual(c.conv("StringToFieldMask")) + "(" + src + ")", true
 	}
 	if ctor, ok := wrapperCtor[wktName(pf)]; ok {
 		valKind := pf.Message.Fields[0].Desc.Kind()
 		return c.qual(extIdent("wrapperspb", ctor)) + "(" + protoScalarGo(valKind) + "(" + src + "))", true
+	}
+	if kind, ok := wktJSON[wktName(pf)]; ok {
+		tmp := c.newTmp("j")
+		c.gf.P(tmp, ", err := ", c.qual(c.conv("JSONTo"+kind)), "(", src, ")")
+		c.gf.P("if err != nil {")
+		c.failLine()
+		c.gf.P("}")
+		return tmp, true
 	}
 	switch {
 	case isMultipart(ot):
@@ -528,6 +561,9 @@ func (c *convGen) fromOgenEnum(pf *protogen.Field, ot *ir.Type, src string) stri
 		c.gf.P("case ", p.ogen, ":")
 		c.gf.P(tmp, " = ", p.pb)
 	}
+	c.gf.P("default:")
+	msg := fmt.Sprintf("%s: enum value %%v has no %s variant", pf.Desc.FullName(), pf.Enum.GoIdent.GoName)
+	c.gf.P("return ", c.fail, ", ", c.qual(extIdent("fmt", "Errorf")), "(", strconv.Quote(msg), ", ", src, ")")
 	c.gf.P("}")
 	return tmp
 }

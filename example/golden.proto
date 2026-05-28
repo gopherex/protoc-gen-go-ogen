@@ -6,6 +6,7 @@ option go_package = "github.com/gopherex/protoc-gen-go-ogen/example/gen;golden";
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
@@ -706,6 +707,8 @@ message CoveragePayload {
   google.protobuf.Value any_json_value = 49;
   google.protobuf.ListValue list_value = 50;
   google.protobuf.Any any_value = 51;
+  // FieldMask -> string of comma-separated paths.
+  google.protobuf.FieldMask field_mask_value = 52;
 
   // OpenAPI: oneOf union without explicit discriminator because variants mix
   // scalar JSON values and object values. See docs/oneof-discriminator.md.
@@ -720,7 +723,10 @@ message CoveragePayload {
     };
 
     string search_text = 60;
-    int64 search_id = 61;
+    // int32 (JSON number), not int64: 64-bit ints serialize as JSON strings
+    // (protojson), which would collide with the string search_text variant in a
+    // discriminator-less oneOf — ogen cannot tell two string variants apart.
+    int32 search_id = 61;
     NestedCoverage search_nested = 62;
   }
 }
@@ -855,6 +861,11 @@ message Error {
       required: true
     }
   ];
+
+  // Structured google.rpc.* status details, each protojson-encoded with its
+  // "@type" (via google.protobuf.Any). Maps to an array of free-form JSON
+  // objects ([]jx.Raw in ogen).
+  repeated google.protobuf.Struct details = 3;
 }
 
 // OpenAPI: string enum when field option enum_as_string is set; otherwise

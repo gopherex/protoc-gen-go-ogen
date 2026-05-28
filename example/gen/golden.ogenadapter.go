@@ -163,6 +163,7 @@ func (a *OgenAdapter) NewError(ctx context.Context, err error) *ogen.ErrorStatus
 	st := grpcbridge.Status(err)
 	e := ogen.Error{}
 	e.Code = st.Code().String()
+	e.Details = grpcbridge.Details(st)
 	e.Message = st.Message()
 	return &ogen.ErrorStatusCode{
 		StatusCode: grpcbridge.HTTPStatus(st.Code()),

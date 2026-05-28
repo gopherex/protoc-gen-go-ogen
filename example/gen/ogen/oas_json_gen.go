@@ -177,9 +177,9 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.AnyValue.Set {
+		if len(s.AnyValue) != 0 {
 			e.FieldStart("anyValue")
-			s.AnyValue.Encode(e)
+			e.Raw(s.AnyValue)
 		}
 	}
 	{
@@ -229,6 +229,12 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.FieldMaskValue.Set {
+			e.FieldStart("fieldMaskValue")
+			s.FieldMaskValue.Encode(e)
+		}
+	}
+	{
 		if s.Fixed32Value.Set {
 			e.FieldStart("fixed32Value")
 			s.Fixed32Value.Encode(e)
@@ -265,15 +271,9 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.ListValue != nil {
+		if len(s.ListValue) != 0 {
 			e.FieldStart("listValue")
-			e.ArrStart()
-			for _, elem := range s.ListValue {
-				if len(elem) != 0 {
-					e.Raw(elem)
-				}
-			}
-			e.ArrEnd()
+			e.Raw(s.ListValue)
 		}
 	}
 	{
@@ -379,9 +379,9 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.StructValue.Set {
+		if len(s.StructValue) != 0 {
 			e.FieldStart("structValue")
-			s.StructValue.Encode(e)
+			e.Raw(s.StructValue)
 		}
 	}
 	{
@@ -410,7 +410,7 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCoverage = [37]string{
+var jsonFieldsNameOfCoverage = [38]string{
 	0:  "anyJsonValue",
 	1:  "anyValue",
 	2:  "boolValue",
@@ -421,33 +421,34 @@ var jsonFieldsNameOfCoverage = [37]string{
 	7:  "doubleWrapper",
 	8:  "durationValue",
 	9:  "enumValue",
-	10: "fixed32Value",
-	11: "fixed64Value",
-	12: "floatValue",
-	13: "int32Value",
-	14: "int64Value",
-	15: "int64Wrapper",
-	16: "listValue",
-	17: "nested",
-	18: "nestedMap",
-	19: "optionalInt64",
-	20: "optionalString",
-	21: "repeatedEnum",
-	22: "repeatedInt32",
-	23: "repeatedString",
-	24: "search",
-	25: "sfixed32Value",
-	26: "sfixed64Value",
-	27: "sint32Value",
-	28: "sint64Value",
-	29: "stringInt64Map",
-	30: "stringValue",
-	31: "stringWrapper",
-	32: "structValue",
-	33: "timestampValue",
-	34: "uint32Value",
-	35: "uint64Value",
-	36: "uint64Wrapper",
+	10: "fieldMaskValue",
+	11: "fixed32Value",
+	12: "fixed64Value",
+	13: "floatValue",
+	14: "int32Value",
+	15: "int64Value",
+	16: "int64Wrapper",
+	17: "listValue",
+	18: "nested",
+	19: "nestedMap",
+	20: "optionalInt64",
+	21: "optionalString",
+	22: "repeatedEnum",
+	23: "repeatedInt32",
+	24: "repeatedString",
+	25: "search",
+	26: "sfixed32Value",
+	27: "sfixed64Value",
+	28: "sint32Value",
+	29: "sint64Value",
+	30: "stringInt64Map",
+	31: "stringValue",
+	32: "stringWrapper",
+	33: "structValue",
+	34: "timestampValue",
+	35: "uint32Value",
+	36: "uint64Value",
+	37: "uint64Wrapper",
 }
 
 // Decode decodes Coverage from json.
@@ -471,8 +472,9 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 			}
 		case "anyValue":
 			if err := func() error {
-				s.AnyValue.Reset()
-				if err := s.AnyValue.Decode(d); err != nil {
+				v, err := d.RawAppend(nil)
+				s.AnyValue = jx.Raw(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -560,6 +562,16 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"enumValue\"")
 			}
+		case "fieldMaskValue":
+			if err := func() error {
+				s.FieldMaskValue.Reset()
+				if err := s.FieldMaskValue.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"fieldMaskValue\"")
+			}
 		case "fixed32Value":
 			if err := func() error {
 				s.Fixed32Value.Reset()
@@ -622,17 +634,9 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 			}
 		case "listValue":
 			if err := func() error {
-				s.ListValue = make([]jx.Raw, 0)
-				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem jx.Raw
-					v, err := d.RawAppend(nil)
-					elem = jx.Raw(v)
-					if err != nil {
-						return err
-					}
-					s.ListValue = append(s.ListValue, elem)
-					return nil
-				}); err != nil {
+				v, err := d.RawAppend(nil)
+				s.ListValue = jx.Raw(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -816,8 +820,9 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 			}
 		case "structValue":
 			if err := func() error {
-				s.StructValue.Reset()
-				if err := s.StructValue.Decode(d); err != nil {
+				v, err := d.RawAppend(nil)
+				s.StructValue = jx.Raw(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -884,64 +889,6 @@ func (s *Coverage) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *Coverage) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s CoverageAnyValue) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s CoverageAnyValue) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-// Decode decodes CoverageAnyValue from json.
-func (s *CoverageAnyValue) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CoverageAnyValue to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem jx.Raw
-		if err := func() error {
-			v, err := d.RawAppend(nil)
-			elem = jx.Raw(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode CoverageAnyValue")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CoverageAnyValue) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CoverageAnyValue) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1091,8 +1038,8 @@ func (s CoverageSearch) Encode(e *jx.Encoder) {
 	switch s.Type {
 	case StringCoverageSearch:
 		e.Str(s.String)
-	case Int64CoverageSearch:
-		e.Int64(s.Int64)
+	case Int32CoverageSearch:
+		e.Int32(s.Int32)
 	case NestedCoverageCoverageSearch:
 		s.NestedCoverage.Encode(e)
 	}
@@ -1106,12 +1053,12 @@ func (s *CoverageSearch) Decode(d *jx.Decoder) error {
 	// Sum type type_discriminator.
 	switch t := d.Next(); t {
 	case jx.Number:
-		v, err := d.Int64()
-		s.Int64 = int64(v)
+		v, err := d.Int32()
+		s.Int32 = int32(v)
 		if err != nil {
 			return err
 		}
-		s.Type = Int64CoverageSearch
+		s.Type = Int32CoverageSearch
 	case jx.Object:
 		if err := s.NestedCoverage.Decode(d); err != nil {
 			return err
@@ -1155,7 +1102,7 @@ func (s CoverageStringInt64Map) encodeFields(e *jx.Encoder) {
 	for k, elem := range s {
 		e.FieldStart(k)
 
-		e.Int64(elem)
+		json.EncodeStringInt64(e, elem)
 	}
 }
 
@@ -1168,8 +1115,8 @@ func (s *CoverageStringInt64Map) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		var elem int64
 		if err := func() error {
-			v, err := d.Int64()
-			elem = int64(v)
+			v, err := json.DecodeStringInt64(d)
+			elem = v
 			if err != nil {
 				return err
 			}
@@ -1195,64 +1142,6 @@ func (s CoverageStringInt64Map) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CoverageStringInt64Map) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s CoverageStructValue) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields implements json.Marshaler.
-func (s CoverageStructValue) encodeFields(e *jx.Encoder) {
-	for k, elem := range s {
-		e.FieldStart(k)
-
-		if len(elem) != 0 {
-			e.Raw(elem)
-		}
-	}
-}
-
-// Decode decodes CoverageStructValue from json.
-func (s *CoverageStructValue) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode CoverageStructValue to nil")
-	}
-	m := s.init()
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		var elem jx.Raw
-		if err := func() error {
-			v, err := d.RawAppend(nil)
-			elem = jx.Raw(v)
-			if err != nil {
-				return err
-			}
-			return nil
-		}(); err != nil {
-			return errors.Wrapf(err, "decode field %q", k)
-		}
-		m[string(k)] = elem
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode CoverageStructValue")
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s CoverageStructValue) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CoverageStructValue) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1459,14 +1348,27 @@ func (s *Error) encodeFields(e *jx.Encoder) {
 		e.Str(s.Code)
 	}
 	{
+		if s.Details != nil {
+			e.FieldStart("details")
+			e.ArrStart()
+			for _, elem := range s.Details {
+				if len(elem) != 0 {
+					e.Raw(elem)
+				}
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		e.FieldStart("message")
 		e.Str(s.Message)
 	}
 }
 
-var jsonFieldsNameOfError = [2]string{
+var jsonFieldsNameOfError = [3]string{
 	0: "code",
-	1: "message",
+	1: "details",
+	2: "message",
 }
 
 // Decode decodes Error from json.
@@ -1490,8 +1392,27 @@ func (s *Error) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"code\"")
 			}
+		case "details":
+			if err := func() error {
+				s.Details = make([]jx.Raw, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem jx.Raw
+					v, err := d.RawAppend(nil)
+					elem = jx.Raw(v)
+					if err != nil {
+						return err
+					}
+					s.Details = append(s.Details, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"details\"")
+			}
 		case "message":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Message = string(v)
@@ -1512,7 +1433,7 @@ func (s *Error) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000101,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -1796,40 +1717,6 @@ func (s *OptBool) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CoverageAnyValue as json.
-func (o OptCoverageAnyValue) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes CoverageAnyValue from json.
-func (o *OptCoverageAnyValue) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptCoverageAnyValue to nil")
-	}
-	o.Set = true
-	o.Value = make(CoverageAnyValue)
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptCoverageAnyValue) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptCoverageAnyValue) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes CoverageEnumValue as json.
 func (o OptCoverageEnumValue) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -1960,40 +1847,6 @@ func (s OptCoverageStringInt64Map) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCoverageStringInt64Map) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes CoverageStructValue as json.
-func (o OptCoverageStructValue) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	o.Value.Encode(e)
-}
-
-// Decode decodes CoverageStructValue from json.
-func (o *OptCoverageStructValue) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptCoverageStructValue to nil")
-	}
-	o.Set = true
-	o.Value = make(CoverageStructValue)
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptCoverageStructValue) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptCoverageStructValue) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -2169,41 +2022,6 @@ func (s OptInt32) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptInt32) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes int64 as json.
-func (o OptInt64) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Int64(int64(o.Value))
-}
-
-// Decode decodes int64 from json.
-func (o *OptInt64) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptInt64 to nil")
-	}
-	o.Set = true
-	v, err := d.Int64()
-	if err != nil {
-		return err
-	}
-	o.Value = int64(v)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptInt64) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptInt64) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -2394,57 +2212,6 @@ func (s *OptNilFloat64) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes int64 as json.
-func (o OptNilInt64) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	if o.Null {
-		e.Null()
-		return
-	}
-	e.Int64(int64(o.Value))
-}
-
-// Decode decodes int64 from json.
-func (o *OptNilInt64) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptNilInt64 to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v int64
-		o.Value = v
-		o.Set = true
-		o.Null = true
-		return nil
-	}
-	o.Set = true
-	o.Null = false
-	v, err := d.Int64()
-	if err != nil {
-		return err
-	}
-	o.Value = int64(v)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptNilInt64) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptNilInt64) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes string as json.
 func (o OptNilString) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -2492,6 +2259,108 @@ func (s OptNilString) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptNilString) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes int64 as json.
+func (o OptNilStringInt64) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	json.EncodeStringInt64(e, o.Value)
+}
+
+// Decode decodes int64 from json.
+func (o *OptNilStringInt64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilStringInt64 to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v int64
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	v, err := json.DecodeStringInt64(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilStringInt64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilStringInt64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes uint64 as json.
+func (o OptNilStringUint64) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	json.EncodeStringUint64(e, o.Value)
+}
+
+// Decode decodes uint64 from json.
+func (o *OptNilStringUint64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilStringUint64 to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v uint64
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	v, err := json.DecodeStringUint64(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilStringUint64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilStringUint64) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -2578,6 +2447,76 @@ func (s OptString) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptString) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes int64 as json.
+func (o OptStringInt64) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	json.EncodeStringInt64(e, o.Value)
+}
+
+// Decode decodes int64 from json.
+func (o *OptStringInt64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptStringInt64 to nil")
+	}
+	o.Set = true
+	v, err := json.DecodeStringInt64(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptStringInt64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptStringInt64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes uint64 as json.
+func (o OptStringUint64) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	json.EncodeStringUint64(e, o.Value)
+}
+
+// Decode decodes uint64 from json.
+func (o *OptStringUint64) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptStringUint64 to nil")
+	}
+	o.Set = true
+	v, err := json.DecodeStringUint64(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptStringUint64) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptStringUint64) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

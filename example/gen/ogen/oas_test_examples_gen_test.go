@@ -35,20 +35,6 @@ func TestCoverage_EncodeDecode(t *testing.T) {
 	var typ2 Coverage
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
-func TestCoverageAnyValue_EncodeDecode(t *testing.T) {
-	var typ CoverageAnyValue
-	typ = make(CoverageAnyValue)
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 CoverageAnyValue
-	typ2 = make(CoverageAnyValue)
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
 func TestCoverageEnumValue_EncodeDecode(t *testing.T) {
 	var typ CoverageEnumValue
 	typ.SetFake()
@@ -111,20 +97,6 @@ func TestCoverageStringInt64Map_EncodeDecode(t *testing.T) {
 
 	var typ2 CoverageStringInt64Map
 	typ2 = make(CoverageStringInt64Map)
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
-func TestCoverageStructValue_EncodeDecode(t *testing.T) {
-	var typ CoverageStructValue
-	typ = make(CoverageStructValue)
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 CoverageStructValue
-	typ2 = make(CoverageStructValue)
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
 func TestEchoCoverageRequest_EncodeDecode(t *testing.T) {

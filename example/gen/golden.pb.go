@@ -14,6 +14,7 @@ import (
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
@@ -880,6 +881,8 @@ type CoveragePayload struct {
 	AnyJsonValue   *structpb.Value         `protobuf:"bytes,49,opt,name=any_json_value,json=anyJsonValue,proto3" json:"any_json_value,omitempty"`
 	ListValue      *structpb.ListValue     `protobuf:"bytes,50,opt,name=list_value,json=listValue,proto3" json:"list_value,omitempty"`
 	AnyValue       *anypb.Any              `protobuf:"bytes,51,opt,name=any_value,json=anyValue,proto3" json:"any_value,omitempty"`
+	// FieldMask -> string of comma-separated paths.
+	FieldMaskValue *fieldmaskpb.FieldMask `protobuf:"bytes,52,opt,name=field_mask_value,json=fieldMaskValue,proto3" json:"field_mask_value,omitempty"`
 	// OpenAPI: oneOf union without explicit discriminator because variants mix
 	// scalar JSON values and object values. See docs/oneof-discriminator.md.
 	// Ogen handles this with type discrimination. Setting discriminator_property
@@ -1180,6 +1183,13 @@ func (x *CoveragePayload) GetAnyValue() *anypb.Any {
 	return nil
 }
 
+func (x *CoveragePayload) GetFieldMaskValue() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.FieldMaskValue
+	}
+	return nil
+}
+
 func (x *CoveragePayload) GetSearch() isCoveragePayload_Search {
 	if x != nil {
 		return x.Search
@@ -1196,7 +1206,7 @@ func (x *CoveragePayload) GetSearchText() string {
 	return ""
 }
 
-func (x *CoveragePayload) GetSearchId() int64 {
+func (x *CoveragePayload) GetSearchId() int32 {
 	if x != nil {
 		if x, ok := x.Search.(*CoveragePayload_SearchId); ok {
 			return x.SearchId
@@ -1223,7 +1233,10 @@ type CoveragePayload_SearchText struct {
 }
 
 type CoveragePayload_SearchId struct {
-	SearchId int64 `protobuf:"varint,61,opt,name=search_id,json=searchId,proto3,oneof"`
+	// int32 (JSON number), not int64: 64-bit ints serialize as JSON strings
+	// (protojson), which would collide with the string search_text variant in a
+	// discriminator-less oneOf — ogen cannot tell two string variants apart.
+	SearchId int32 `protobuf:"varint,61,opt,name=search_id,json=searchId,proto3,oneof"`
 }
 
 type CoveragePayload_SearchNested struct {
@@ -1524,9 +1537,13 @@ func (x *NestedCoverage) GetNote() string {
 // Ogen: plain object with required code/message.
 // Converters: direct scalar copies.
 type Error struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Code    string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	// Structured google.rpc.* status details, each protojson-encoded with its
+	// "@type" (via google.protobuf.Any). Maps to an array of free-form JSON
+	// objects ([]jx.Raw in ogen).
+	Details       []*structpb.Struct `protobuf:"bytes,3,rep,name=details,proto3" json:"details,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1575,11 +1592,18 @@ func (x *Error) GetMessage() string {
 	return ""
 }
 
+func (x *Error) GetDetails() []*structpb.Struct {
+	if x != nil {
+		return x.Details
+	}
+	return nil
+}
+
 var File_golden_proto protoreflect.FileDescriptor
 
 const file_golden_proto_rawDesc = "" +
 	"\n" +
-	"\fgolden.proto\x12\x0eexample.golden\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a\x19google/protobuf/any.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x0fogen/ogen.proto\x1a\x17validate/validate.proto\"w\n" +
+	"\fgolden.proto\x12\x0eexample.golden\x1a\x1egoogle/protobuf/duration.proto\x1a\x1bgoogle/protobuf/empty.proto\x1a google/protobuf/field_mask.proto\x1a\x19google/protobuf/any.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x0fogen/ogen.proto\x1a\x17validate/validate.proto\"w\n" +
 	"\x0eGetUserRequest\x12\x1a\n" +
 	"\x02id\x18\x01 \x01(\tB\n" +
 	"\xf2\xa7\x1d\x06\x10\x01\"\x02P\aR\x02id\x12:\n" +
@@ -1646,7 +1670,7 @@ const file_golden_proto_rawDesc = "" +
 	"\x13EchoCoverageRequest\x12A\n" +
 	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"Y\n" +
 	"\x14EchoCoverageResponse\x12A\n" +
-	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"\xaf\x12\n" +
+	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"\xf5\x12\n" +
 	"\x0fCoveragePayload\x12!\n" +
 	"\fdouble_value\x18\x01 \x01(\x01R\vdoubleValue\x12\x1f\n" +
 	"\vfloat_value\x18\x02 \x01(\x02R\n" +
@@ -1692,10 +1716,11 @@ const file_golden_proto_rawDesc = "" +
 	"\x0eany_json_value\x181 \x01(\v2\x16.google.protobuf.ValueR\fanyJsonValue\x129\n" +
 	"\n" +
 	"list_value\x182 \x01(\v2\x1a.google.protobuf.ListValueR\tlistValue\x121\n" +
-	"\tany_value\x183 \x01(\v2\x14.google.protobuf.AnyR\banyValue\x12!\n" +
+	"\tany_value\x183 \x01(\v2\x14.google.protobuf.AnyR\banyValue\x12D\n" +
+	"\x10field_mask_value\x184 \x01(\v2\x1a.google.protobuf.FieldMaskR\x0efieldMaskValue\x12!\n" +
 	"\vsearch_text\x18< \x01(\tH\x00R\n" +
 	"searchText\x12\x1d\n" +
-	"\tsearch_id\x18= \x01(\x03H\x00R\bsearchId\x12E\n" +
+	"\tsearch_id\x18= \x01(\x05H\x00R\bsearchId\x12E\n" +
 	"\rsearch_nested\x18> \x01(\v2\x1e.example.golden.NestedCoverageH\x00R\fsearchNested\x1aA\n" +
 	"\x13StringInt64MapEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
@@ -1728,10 +1753,11 @@ const file_golden_proto_rawDesc = "" +
 	"\x0eNestedCoverage\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\"\n" +
 	"\x04note\x18\x02 \x01(\tB\t\xf2\xa7\x1d\x05\"\x03\xa0\x01\x01H\x00R\x04note\x88\x01\x01B\a\n" +
-	"\x05_note\"R\n" +
+	"\x05_note\"\x85\x01\n" +
 	"\x05Error\x12\x1a\n" +
 	"\x04code\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x04code\x12 \n" +
-	"\amessage\x18\x02 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\amessage:\v\xf2\xa7\x1d\a\x12\x05Error*t\n" +
+	"\amessage\x18\x02 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\amessage\x121\n" +
+	"\adetails\x18\x03 \x03(\v2\x17.google.protobuf.StructR\adetails:\v\xf2\xa7\x1d\a\x12\x05Error*t\n" +
 	"\n" +
 	"UserStatus\x12\x1b\n" +
 	"\x17USER_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -1838,7 +1864,8 @@ var file_golden_proto_goTypes = []any{
 	(*structpb.Value)(nil),         // 34: google.protobuf.Value
 	(*structpb.ListValue)(nil),     // 35: google.protobuf.ListValue
 	(*anypb.Any)(nil),              // 36: google.protobuf.Any
-	(*emptypb.Empty)(nil),          // 37: google.protobuf.Empty
+	(*fieldmaskpb.FieldMask)(nil),  // 37: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),          // 38: google.protobuf.Empty
 }
 var file_golden_proto_depIdxs = []int32{
 	9,  // 0: example.golden.GetUserResponse.user:type_name -> example.golden.User
@@ -1871,31 +1898,33 @@ var file_golden_proto_depIdxs = []int32{
 	34, // 27: example.golden.CoveragePayload.any_json_value:type_name -> google.protobuf.Value
 	35, // 28: example.golden.CoveragePayload.list_value:type_name -> google.protobuf.ListValue
 	36, // 29: example.golden.CoveragePayload.any_value:type_name -> google.protobuf.Any
-	18, // 30: example.golden.CoveragePayload.search_nested:type_name -> example.golden.NestedCoverage
-	17, // 31: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
-	9,  // 32: example.golden.UserChangedPayload.user:type_name -> example.golden.User
-	18, // 33: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
-	1,  // 34: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
-	3,  // 35: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
-	5,  // 36: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
-	7,  // 37: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
-	11, // 38: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
-	14, // 39: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
-	15, // 40: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
-	16, // 41: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
-	2,  // 42: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
-	4,  // 43: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
-	6,  // 44: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
-	37, // 45: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
-	12, // 46: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
-	37, // 47: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
-	37, // 48: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
-	37, // 49: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
-	42, // [42:50] is the sub-list for method output_type
-	34, // [34:42] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	37, // 30: example.golden.CoveragePayload.field_mask_value:type_name -> google.protobuf.FieldMask
+	18, // 31: example.golden.CoveragePayload.search_nested:type_name -> example.golden.NestedCoverage
+	17, // 32: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
+	9,  // 33: example.golden.UserChangedPayload.user:type_name -> example.golden.User
+	33, // 34: example.golden.Error.details:type_name -> google.protobuf.Struct
+	18, // 35: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
+	1,  // 36: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
+	3,  // 37: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
+	5,  // 38: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
+	7,  // 39: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
+	11, // 40: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
+	14, // 41: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
+	15, // 42: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
+	16, // 43: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
+	2,  // 44: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
+	4,  // 45: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
+	6,  // 46: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
+	38, // 47: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
+	12, // 48: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
+	38, // 49: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
+	38, // 50: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
+	38, // 51: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
+	44, // [44:52] is the sub-list for method output_type
+	36, // [36:44] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_golden_proto_init() }

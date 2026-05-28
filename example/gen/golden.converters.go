@@ -4,11 +4,13 @@ package golden
 
 import (
 	fmt "fmt"
+	jx "github.com/go-faster/jx"
 	uuid "github.com/google/uuid"
 	convert "github.com/gopherex/protoc-gen-go-ogen/convert"
 	ogen "github.com/gopherex/protoc-gen-go-ogen/example/gen/ogen"
 	grpcbridge "github.com/gopherex/protoc-gen-go-ogen/grpcbridge"
 	http "github.com/ogen-go/ogen/http"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	url "net/url"
 )
@@ -52,11 +54,11 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 	dst.Int32Value.SetTo(int32(src.GetInt32Value()))
 	dst.Int64Value.SetTo(int64(src.GetInt64Value()))
 	dst.Uint32Value.SetTo(int32(src.GetUint32Value()))
-	dst.Uint64Value.SetTo(int64(src.GetUint64Value()))
+	dst.Uint64Value.SetTo(uint64(src.GetUint64Value()))
 	dst.Sint32Value.SetTo(int32(src.GetSint32Value()))
 	dst.Sint64Value.SetTo(int64(src.GetSint64Value()))
 	dst.Fixed32Value.SetTo(int32(src.GetFixed32Value()))
-	dst.Fixed64Value.SetTo(int64(src.GetFixed64Value()))
+	dst.Fixed64Value.SetTo(uint64(src.GetFixed64Value()))
 	dst.Sfixed32Value.SetTo(int32(src.GetSfixed32Value()))
 	dst.Sfixed64Value.SetTo(int64(src.GetSfixed64Value()))
 	dst.BoolValue.SetTo(bool(src.GetBoolValue()))
@@ -146,7 +148,7 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 		dst.BoolWrapper.SetTo(bool(src.GetBoolWrapper().GetValue()))
 	}
 	if src.Uint64Wrapper != nil {
-		dst.Uint64Wrapper.SetTo(int64(src.GetUint64Wrapper().GetValue()))
+		dst.Uint64Wrapper.SetTo(uint64(src.GetUint64Wrapper().GetValue()))
 	}
 	if src.DoubleWrapper != nil {
 		dst.DoubleWrapper.SetTo(float64(src.GetDoubleWrapper().GetValue()))
@@ -154,24 +156,43 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 	if src.BytesWrapper != nil {
 		dst.BytesWrapper.SetTo([]byte(src.GetBytesWrapper().GetValue()))
 	}
-	// StructValue: unsupported type, skipped
-	// AnyJsonValue: unsupported type, skipped
-	// ListValue: unsupported type, skipped
-	// AnyValue: unsupported type, skipped
+	j10, err := convert.StructToJSON(src.GetStructValue())
+	if err != nil {
+		return nil, err
+	}
+	dst.StructValue = j10
+	j11, err := convert.ValueToJSON(src.GetAnyJsonValue())
+	if err != nil {
+		return nil, err
+	}
+	dst.AnyJsonValue = j11
+	j12, err := convert.ListValueToJSON(src.GetListValue())
+	if err != nil {
+		return nil, err
+	}
+	dst.ListValue = j12
+	j13, err := convert.AnyToJSON(src.GetAnyValue())
+	if err != nil {
+		return nil, err
+	}
+	dst.AnyValue = j13
+	if src.FieldMaskValue != nil {
+		dst.FieldMaskValue.SetTo(convert.FieldMaskToString(src.GetFieldMaskValue()))
+	}
 	switch src.GetSearch().(type) {
 	case *CoveragePayload_SearchText:
-		sum10 := ogen.NewStringCoverageSearch(string(src.GetSearchText()))
-		dst.Search.SetTo(sum10)
+		sum14 := ogen.NewStringCoverageSearch(string(src.GetSearchText()))
+		dst.Search.SetTo(sum14)
 	case *CoveragePayload_SearchId:
-		sum11 := ogen.NewInt64CoverageSearch(int64(src.GetSearchId()))
-		dst.Search.SetTo(sum11)
+		sum15 := ogen.NewInt32CoverageSearch(int32(src.GetSearchId()))
+		dst.Search.SetTo(sum15)
 	case *CoveragePayload_SearchNested:
-		o12, err := src.GetSearchNested().ToOgen()
+		o16, err := src.GetSearchNested().ToOgen()
 		if err != nil {
 			return nil, err
 		}
-		sum13 := ogen.NewNestedCoverageCoverageSearch(*o12)
-		dst.Search.SetTo(sum13)
+		sum17 := ogen.NewNestedCoverageCoverageSearch(*o16)
+		dst.Search.SetTo(sum17)
 	}
 	return &dst, nil
 }
@@ -269,10 +290,12 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 			en27 = UserStatus_USER_STATUS_DISABLED
 		case ogen.CoverageEnumValueUSERSTATUSDELETED:
 			en27 = UserStatus_USER_STATUS_DELETED
+		default:
+			return nil, fmt.Errorf("example.golden.CoveragePayload.enum_value: enum value %v has no UserStatus variant", v26)
 		}
 		dst.EnumValue = en27
 	}
-	c28 := convert.Slice(src.RepeatedEnum, func(e ogen.CoverageRepeatedEnumItem) UserStatus {
+	c28, err := convert.SliceErr(src.RepeatedEnum, func(e ogen.CoverageRepeatedEnumItem) (zero UserStatus, _ error) {
 		var en29 UserStatus
 		switch e {
 		case ogen.CoverageRepeatedEnumItemUSERSTATUSUNSPECIFIED:
@@ -283,9 +306,14 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 			en29 = UserStatus_USER_STATUS_DISABLED
 		case ogen.CoverageRepeatedEnumItemUSERSTATUSDELETED:
 			en29 = UserStatus_USER_STATUS_DELETED
+		default:
+			return zero, fmt.Errorf("example.golden.CoveragePayload.repeated_enum: enum value %v has no UserStatus variant", e)
 		}
-		return en29
+		return en29, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 	dst.RepeatedEnum = c28
 	if v30, ok := src.Nested.Get(); ok {
 		m31, err := NestedCoverageFromOgen(&v30)
@@ -318,22 +346,41 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 	if v39, ok := src.BytesWrapper.Get(); ok {
 		dst.BytesWrapper = wrapperspb.Bytes([]byte(v39))
 	}
-	// StructValue: unsupported type, skipped
-	// AnyJsonValue: unsupported type, skipped
-	// ListValue: unsupported type, skipped
-	// AnyValue: unsupported type, skipped
-	if s40, ok := src.Search.Get(); ok {
-		switch s40.Type {
+	j40, err := convert.JSONToStruct(src.StructValue)
+	if err != nil {
+		return nil, err
+	}
+	dst.StructValue = j40
+	j41, err := convert.JSONToValue(src.AnyJsonValue)
+	if err != nil {
+		return nil, err
+	}
+	dst.AnyJsonValue = j41
+	j42, err := convert.JSONToListValue(src.ListValue)
+	if err != nil {
+		return nil, err
+	}
+	dst.ListValue = j42
+	j43, err := convert.JSONToAny(src.AnyValue)
+	if err != nil {
+		return nil, err
+	}
+	dst.AnyValue = j43
+	if v44, ok := src.FieldMaskValue.Get(); ok {
+		dst.FieldMaskValue = convert.StringToFieldMask(v44)
+	}
+	if s45, ok := src.Search.Get(); ok {
+		switch s45.Type {
 		case ogen.StringCoverageSearch:
-			dst.Search = &CoveragePayload_SearchText{SearchText: string(s40.String)}
-		case ogen.Int64CoverageSearch:
-			dst.Search = &CoveragePayload_SearchId{SearchId: int64(s40.Int64)}
+			dst.Search = &CoveragePayload_SearchText{SearchText: string(s45.String)}
+		case ogen.Int32CoverageSearch:
+			dst.Search = &CoveragePayload_SearchId{SearchId: int32(s45.Int32)}
 		case ogen.NestedCoverageCoverageSearch:
-			m41, err := NestedCoverageFromOgen(&s40.NestedCoverage)
+			m46, err := NestedCoverageFromOgen(&s45.NestedCoverage)
 			if err != nil {
 				return nil, err
 			}
-			dst.Search = &CoveragePayload_SearchNested{SearchNested: m41}
+			dst.Search = &CoveragePayload_SearchNested{SearchNested: m46}
 		}
 	}
 	return dst, nil
@@ -448,6 +495,17 @@ func (src *Error) ToOgen() (*ogen.Error, error) {
 	}
 	dst.Code = string(src.GetCode())
 	dst.Message = string(src.GetMessage())
+	c1, err := convert.SliceErr(src.GetDetails(), func(e *structpb.Struct) (zero jx.Raw, _ error) {
+		j2, err := convert.StructToJSON(e)
+		if err != nil {
+			return zero, err
+		}
+		return j2, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	dst.Details = c1
 	return &dst, nil
 }
 
@@ -459,6 +517,17 @@ func ErrorFromOgen(src *ogen.Error) (*Error, error) {
 	dst := &Error{}
 	dst.Code = string(src.Code)
 	dst.Message = string(src.Message)
+	c1, err := convert.SliceErr(src.Details, func(e jx.Raw) (zero *structpb.Struct, _ error) {
+		j2, err := convert.JSONToStruct(e)
+		if err != nil {
+			return zero, err
+		}
+		return j2, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	dst.Details = c1
 	return dst, nil
 }
 
@@ -617,6 +686,8 @@ func UserFromOgen(src *ogen.User) (*User, error) {
 			en4 = UserStatus_USER_STATUS_DISABLED
 		case ogen.UserStatusUSERSTATUSDELETED:
 			en4 = UserStatus_USER_STATUS_DELETED
+		default:
+			return nil, fmt.Errorf("example.golden.User.status: enum value %v has no UserStatus variant", v3)
 		}
 		dst.Status = en4
 	}

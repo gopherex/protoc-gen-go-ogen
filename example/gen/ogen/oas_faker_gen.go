@@ -43,7 +43,7 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
-			s.AnyValue.SetFake()
+			s.AnyValue = []byte("null")
 		}
 	}
 	{
@@ -88,6 +88,11 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
+			s.FieldMaskValue.SetFake()
+		}
+	}
+	{
+		{
 			s.Fixed32Value.SetFake()
 		}
 	}
@@ -118,14 +123,7 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
-			s.ListValue = nil
-			for i := 0; i < 0; i++ {
-				var elem jx.Raw
-				{
-					elem = []byte("null")
-				}
-				s.ListValue = append(s.ListValue, elem)
-			}
+			s.ListValue = []byte("null")
 		}
 	}
 	{
@@ -226,7 +224,7 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
-			s.StructValue.SetFake()
+			s.StructValue = []byte("null")
 		}
 	}
 	{
@@ -248,17 +246,6 @@ func (s *Coverage) SetFake() {
 		{
 			s.Uint64Wrapper.SetFake()
 		}
-	}
-}
-
-// SetFake set fake values.
-func (s *CoverageAnyValue) SetFake() {
-	var (
-		elem jx.Raw
-		m    map[string]jx.Raw = s.init()
-	)
-	for i := 0; i < 0; i++ {
-		m[fmt.Sprintf("fake%d", i)] = elem
 	}
 }
 
@@ -305,17 +292,6 @@ func (s *CoverageStringInt64Map) SetFake() {
 }
 
 // SetFake set fake values.
-func (s *CoverageStructValue) SetFake() {
-	var (
-		elem jx.Raw
-		m    map[string]jx.Raw = s.init()
-	)
-	for i := 0; i < 0; i++ {
-		m[fmt.Sprintf("fake%d", i)] = elem
-	}
-}
-
-// SetFake set fake values.
 func (s *EchoCoverageRequest) SetFake() {
 	{
 		{
@@ -338,6 +314,18 @@ func (s *Error) SetFake() {
 	{
 		{
 			s.Code = "string"
+		}
+	}
+	{
+		{
+			s.Details = nil
+			for i := 0; i < 0; i++ {
+				var elem jx.Raw
+				{
+					elem = []byte("null")
+				}
+				s.Details = append(s.Details, elem)
+			}
 		}
 	}
 	{
@@ -392,15 +380,6 @@ func (s *OptBool) SetFake() {
 }
 
 // SetFake set fake values.
-func (s *OptCoverageAnyValue) SetFake() {
-	var elem CoverageAnyValue
-	{
-		elem.SetFake()
-	}
-	s.SetTo(elem)
-}
-
-// SetFake set fake values.
 func (s *OptCoverageEnumValue) SetFake() {
 	var elem CoverageEnumValue
 	{
@@ -430,15 +409,6 @@ func (s *OptCoverageSearch) SetFake() {
 // SetFake set fake values.
 func (s *OptCoverageStringInt64Map) SetFake() {
 	var elem CoverageStringInt64Map
-	{
-		elem.SetFake()
-	}
-	s.SetTo(elem)
-}
-
-// SetFake set fake values.
-func (s *OptCoverageStructValue) SetFake() {
-	var elem CoverageStructValue
 	{
 		elem.SetFake()
 	}
@@ -491,15 +461,6 @@ func (s *OptInt32) SetFake() {
 }
 
 // SetFake set fake values.
-func (s *OptInt64) SetFake() {
-	var elem int64
-	{
-		elem = int64(0)
-	}
-	s.SetTo(elem)
-}
-
-// SetFake set fake values.
 func (s *OptNestedCoverage) SetFake() {
 	var elem NestedCoverage
 	{
@@ -527,13 +488,19 @@ func (s *OptNilFloat64) SetFake() {
 }
 
 // SetFake set fake values.
-func (s *OptNilInt64) SetFake() {
+func (s *OptNilString) SetFake() {
 	s.Null = true
 	s.Set = true
 }
 
 // SetFake set fake values.
-func (s *OptNilString) SetFake() {
+func (s *OptNilStringInt64) SetFake() {
+	s.Null = true
+	s.Set = true
+}
+
+// SetFake set fake values.
+func (s *OptNilStringUint64) SetFake() {
 	s.Null = true
 	s.Set = true
 }
@@ -549,6 +516,24 @@ func (s *OptString) SetFake() {
 	var elem string
 	{
 		elem = "string"
+	}
+	s.SetTo(elem)
+}
+
+// SetFake set fake values.
+func (s *OptStringInt64) SetFake() {
+	var elem int64
+	{
+		elem = int64(0)
+	}
+	s.SetTo(elem)
+}
+
+// SetFake set fake values.
+func (s *OptStringUint64) SetFake() {
+	var elem uint64
+	{
+		elem = uint64(0)
 	}
 	s.SetTo(elem)
 }

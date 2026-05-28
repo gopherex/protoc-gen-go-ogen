@@ -6,14 +6,17 @@ package grpcbridge
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/go-faster/jx"
 	ht "github.com/ogen-go/ogen/http"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ReadMultipart reads an uploaded multipart file into a byte slice.
@@ -83,16 +86,30 @@ func AppendIncomingMD(ctx context.Context, kv ...string) context.Context {
 	return metadata.NewIncomingContext(ctx, md)
 }
 
-// Details renders a status' detail messages as strings (best-effort), for error
-// schemas that expose a details field.
-func Details(st *status.Status) []string {
+// Details renders a status' detail messages as protojson values, each wrapped in
+// a google.protobuf.Any so the "@type" URL is preserved. Non-message or
+// unmarshalable details are skipped. The result feeds an error schema's details
+// array (ogen []jx.Raw).
+func Details(st *status.Status) []jx.Raw {
 	details := st.Details()
 	if len(details) == 0 {
 		return nil
 	}
-	out := make([]string, 0, len(details))
+	out := make([]jx.Raw, 0, len(details))
 	for _, d := range details {
-		out = append(out, fmt.Sprintf("%v", d))
+		m, ok := d.(proto.Message)
+		if !ok {
+			continue
+		}
+		any, err := anypb.New(m)
+		if err != nil {
+			continue
+		}
+		b, err := protojson.Marshal(any)
+		if err != nil {
+			continue
+		}
+		out = append(out, jx.Raw(b))
 	}
 	return out
 }

@@ -582,11 +582,11 @@ func (g *OpenAPIGenerator) schemaForSingularField(field *protogen.Field) map[str
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
 		return map[string]any{"type": "integer", "format": "int32"}
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		return map[string]any{"type": "integer", "format": "int64"}
+		return map[string]any{"type": "string", "format": "int64"}
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
 		return map[string]any{"type": "integer", "format": "int32", "minimum": 0}
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		return map[string]any{"type": "integer", "format": "int64", "minimum": 0}
+		return map[string]any{"type": "string", "format": "uint64"}
 	case protoreflect.BoolKind:
 		return map[string]any{"type": "boolean"}
 	case protoreflect.StringKind:
@@ -851,16 +851,18 @@ func wellKnownSchema(name protoreflect.FullName) map[string]any {
 		return map[string]any{"type": "string", "format": "date-time"}
 	case "google.protobuf.Duration":
 		return map[string]any{"type": "string", "format": "duration"}
+	case "google.protobuf.FieldMask":
+		return map[string]any{"type": "string", "format": "field-mask"}
 	case "google.protobuf.StringValue":
 		return map[string]any{"type": "string", "nullable": true}
 	case "google.protobuf.Int32Value":
 		return map[string]any{"type": "integer", "format": "int32", "nullable": true}
 	case "google.protobuf.Int64Value":
-		return map[string]any{"type": "integer", "format": "int64", "nullable": true}
+		return map[string]any{"type": "string", "format": "int64", "nullable": true}
 	case "google.protobuf.UInt32Value":
 		return map[string]any{"type": "integer", "format": "int32", "minimum": 0, "nullable": true}
 	case "google.protobuf.UInt64Value":
-		return map[string]any{"type": "integer", "format": "int64", "minimum": 0, "nullable": true}
+		return map[string]any{"type": "string", "format": "uint64", "nullable": true}
 	case "google.protobuf.FloatValue":
 		return map[string]any{"type": "number", "format": "float", "nullable": true}
 	case "google.protobuf.DoubleValue":
@@ -871,12 +873,10 @@ func wellKnownSchema(name protoreflect.FullName) map[string]any {
 		return map[string]any{"type": "string", "format": "byte", "nullable": true}
 	case "google.protobuf.Empty":
 		return map[string]any{"type": "object", "additionalProperties": false}
-	case "google.protobuf.Struct", "google.protobuf.Any":
-		return map[string]any{"type": "object", "additionalProperties": true}
-	case "google.protobuf.Value":
+	// Struct/Value/ListValue/Any carry arbitrary JSON; emit a free-form schema so
+	// ogen represents them as jx.Raw and the converters bridge via protojson.
+	case "google.protobuf.Struct", "google.protobuf.Any", "google.protobuf.Value", "google.protobuf.ListValue":
 		return map[string]any{}
-	case "google.protobuf.ListValue":
-		return map[string]any{"type": "array", "items": map[string]any{}}
 	default:
 		return nil
 	}

@@ -70,7 +70,7 @@ func (s *Address) SetLine2(val OptString) {
 // Ref: #/components/schemas/CoveragePayload
 type Coverage struct {
 	AnyJsonValue   jx.Raw                     `json:"anyJsonValue"`
-	AnyValue       OptCoverageAnyValue        `json:"anyValue"`
+	AnyValue       jx.Raw                     `json:"anyValue"`
 	BoolValue      OptBool                    `json:"boolValue"`
 	BoolWrapper    OptNilBool                 `json:"boolWrapper"`
 	BytesValue     []byte                     `json:"bytesValue"`
@@ -79,33 +79,34 @@ type Coverage struct {
 	DoubleWrapper  OptNilFloat64              `json:"doubleWrapper"`
 	DurationValue  OptDuration                `json:"durationValue"`
 	EnumValue      OptCoverageEnumValue       `json:"enumValue"`
+	FieldMaskValue OptString                  `json:"fieldMaskValue"`
 	Fixed32Value   OptInt32                   `json:"fixed32Value"`
-	Fixed64Value   OptInt64                   `json:"fixed64Value"`
+	Fixed64Value   OptStringUint64            `json:"fixed64Value"`
 	FloatValue     OptFloat32                 `json:"floatValue"`
 	Int32Value     OptInt32                   `json:"int32Value"`
-	Int64Value     OptInt64                   `json:"int64Value"`
-	Int64Wrapper   OptNilInt64                `json:"int64Wrapper"`
-	ListValue      []jx.Raw                   `json:"listValue"`
+	Int64Value     OptStringInt64             `json:"int64Value"`
+	Int64Wrapper   OptNilStringInt64          `json:"int64Wrapper"`
+	ListValue      jx.Raw                     `json:"listValue"`
 	Nested         OptNestedCoverage          `json:"nested"`
 	NestedMap      OptCoverageNestedMap       `json:"nestedMap"`
-	OptionalInt64  OptInt64                   `json:"optionalInt64"`
+	OptionalInt64  OptStringInt64             `json:"optionalInt64"`
 	OptionalString OptNilString               `json:"optionalString"`
 	RepeatedEnum   []CoverageRepeatedEnumItem `json:"repeatedEnum"`
 	RepeatedInt32  []int32                    `json:"repeatedInt32"`
 	RepeatedString []string                   `json:"repeatedString"`
 	Search         OptCoverageSearch          `json:"search"`
 	Sfixed32Value  OptInt32                   `json:"sfixed32Value"`
-	Sfixed64Value  OptInt64                   `json:"sfixed64Value"`
+	Sfixed64Value  OptStringInt64             `json:"sfixed64Value"`
 	Sint32Value    OptInt32                   `json:"sint32Value"`
-	Sint64Value    OptInt64                   `json:"sint64Value"`
+	Sint64Value    OptStringInt64             `json:"sint64Value"`
 	StringInt64Map OptCoverageStringInt64Map  `json:"stringInt64Map"`
 	StringValue    OptString                  `json:"stringValue"`
 	StringWrapper  OptNilString               `json:"stringWrapper"`
-	StructValue    OptCoverageStructValue     `json:"structValue"`
+	StructValue    jx.Raw                     `json:"structValue"`
 	TimestampValue OptDateTime                `json:"timestampValue"`
 	Uint32Value    OptInt32                   `json:"uint32Value"`
-	Uint64Value    OptInt64                   `json:"uint64Value"`
-	Uint64Wrapper  OptNilInt64                `json:"uint64Wrapper"`
+	Uint64Value    OptStringUint64            `json:"uint64Value"`
+	Uint64Wrapper  OptNilStringUint64         `json:"uint64Wrapper"`
 }
 
 // GetAnyJsonValue returns the value of AnyJsonValue.
@@ -114,7 +115,7 @@ func (s *Coverage) GetAnyJsonValue() jx.Raw {
 }
 
 // GetAnyValue returns the value of AnyValue.
-func (s *Coverage) GetAnyValue() OptCoverageAnyValue {
+func (s *Coverage) GetAnyValue() jx.Raw {
 	return s.AnyValue
 }
 
@@ -158,13 +159,18 @@ func (s *Coverage) GetEnumValue() OptCoverageEnumValue {
 	return s.EnumValue
 }
 
+// GetFieldMaskValue returns the value of FieldMaskValue.
+func (s *Coverage) GetFieldMaskValue() OptString {
+	return s.FieldMaskValue
+}
+
 // GetFixed32Value returns the value of Fixed32Value.
 func (s *Coverage) GetFixed32Value() OptInt32 {
 	return s.Fixed32Value
 }
 
 // GetFixed64Value returns the value of Fixed64Value.
-func (s *Coverage) GetFixed64Value() OptInt64 {
+func (s *Coverage) GetFixed64Value() OptStringUint64 {
 	return s.Fixed64Value
 }
 
@@ -179,17 +185,17 @@ func (s *Coverage) GetInt32Value() OptInt32 {
 }
 
 // GetInt64Value returns the value of Int64Value.
-func (s *Coverage) GetInt64Value() OptInt64 {
+func (s *Coverage) GetInt64Value() OptStringInt64 {
 	return s.Int64Value
 }
 
 // GetInt64Wrapper returns the value of Int64Wrapper.
-func (s *Coverage) GetInt64Wrapper() OptNilInt64 {
+func (s *Coverage) GetInt64Wrapper() OptNilStringInt64 {
 	return s.Int64Wrapper
 }
 
 // GetListValue returns the value of ListValue.
-func (s *Coverage) GetListValue() []jx.Raw {
+func (s *Coverage) GetListValue() jx.Raw {
 	return s.ListValue
 }
 
@@ -204,7 +210,7 @@ func (s *Coverage) GetNestedMap() OptCoverageNestedMap {
 }
 
 // GetOptionalInt64 returns the value of OptionalInt64.
-func (s *Coverage) GetOptionalInt64() OptInt64 {
+func (s *Coverage) GetOptionalInt64() OptStringInt64 {
 	return s.OptionalInt64
 }
 
@@ -239,7 +245,7 @@ func (s *Coverage) GetSfixed32Value() OptInt32 {
 }
 
 // GetSfixed64Value returns the value of Sfixed64Value.
-func (s *Coverage) GetSfixed64Value() OptInt64 {
+func (s *Coverage) GetSfixed64Value() OptStringInt64 {
 	return s.Sfixed64Value
 }
 
@@ -249,7 +255,7 @@ func (s *Coverage) GetSint32Value() OptInt32 {
 }
 
 // GetSint64Value returns the value of Sint64Value.
-func (s *Coverage) GetSint64Value() OptInt64 {
+func (s *Coverage) GetSint64Value() OptStringInt64 {
 	return s.Sint64Value
 }
 
@@ -269,7 +275,7 @@ func (s *Coverage) GetStringWrapper() OptNilString {
 }
 
 // GetStructValue returns the value of StructValue.
-func (s *Coverage) GetStructValue() OptCoverageStructValue {
+func (s *Coverage) GetStructValue() jx.Raw {
 	return s.StructValue
 }
 
@@ -284,12 +290,12 @@ func (s *Coverage) GetUint32Value() OptInt32 {
 }
 
 // GetUint64Value returns the value of Uint64Value.
-func (s *Coverage) GetUint64Value() OptInt64 {
+func (s *Coverage) GetUint64Value() OptStringUint64 {
 	return s.Uint64Value
 }
 
 // GetUint64Wrapper returns the value of Uint64Wrapper.
-func (s *Coverage) GetUint64Wrapper() OptNilInt64 {
+func (s *Coverage) GetUint64Wrapper() OptNilStringUint64 {
 	return s.Uint64Wrapper
 }
 
@@ -299,7 +305,7 @@ func (s *Coverage) SetAnyJsonValue(val jx.Raw) {
 }
 
 // SetAnyValue sets the value of AnyValue.
-func (s *Coverage) SetAnyValue(val OptCoverageAnyValue) {
+func (s *Coverage) SetAnyValue(val jx.Raw) {
 	s.AnyValue = val
 }
 
@@ -343,13 +349,18 @@ func (s *Coverage) SetEnumValue(val OptCoverageEnumValue) {
 	s.EnumValue = val
 }
 
+// SetFieldMaskValue sets the value of FieldMaskValue.
+func (s *Coverage) SetFieldMaskValue(val OptString) {
+	s.FieldMaskValue = val
+}
+
 // SetFixed32Value sets the value of Fixed32Value.
 func (s *Coverage) SetFixed32Value(val OptInt32) {
 	s.Fixed32Value = val
 }
 
 // SetFixed64Value sets the value of Fixed64Value.
-func (s *Coverage) SetFixed64Value(val OptInt64) {
+func (s *Coverage) SetFixed64Value(val OptStringUint64) {
 	s.Fixed64Value = val
 }
 
@@ -364,17 +375,17 @@ func (s *Coverage) SetInt32Value(val OptInt32) {
 }
 
 // SetInt64Value sets the value of Int64Value.
-func (s *Coverage) SetInt64Value(val OptInt64) {
+func (s *Coverage) SetInt64Value(val OptStringInt64) {
 	s.Int64Value = val
 }
 
 // SetInt64Wrapper sets the value of Int64Wrapper.
-func (s *Coverage) SetInt64Wrapper(val OptNilInt64) {
+func (s *Coverage) SetInt64Wrapper(val OptNilStringInt64) {
 	s.Int64Wrapper = val
 }
 
 // SetListValue sets the value of ListValue.
-func (s *Coverage) SetListValue(val []jx.Raw) {
+func (s *Coverage) SetListValue(val jx.Raw) {
 	s.ListValue = val
 }
 
@@ -389,7 +400,7 @@ func (s *Coverage) SetNestedMap(val OptCoverageNestedMap) {
 }
 
 // SetOptionalInt64 sets the value of OptionalInt64.
-func (s *Coverage) SetOptionalInt64(val OptInt64) {
+func (s *Coverage) SetOptionalInt64(val OptStringInt64) {
 	s.OptionalInt64 = val
 }
 
@@ -424,7 +435,7 @@ func (s *Coverage) SetSfixed32Value(val OptInt32) {
 }
 
 // SetSfixed64Value sets the value of Sfixed64Value.
-func (s *Coverage) SetSfixed64Value(val OptInt64) {
+func (s *Coverage) SetSfixed64Value(val OptStringInt64) {
 	s.Sfixed64Value = val
 }
 
@@ -434,7 +445,7 @@ func (s *Coverage) SetSint32Value(val OptInt32) {
 }
 
 // SetSint64Value sets the value of Sint64Value.
-func (s *Coverage) SetSint64Value(val OptInt64) {
+func (s *Coverage) SetSint64Value(val OptStringInt64) {
 	s.Sint64Value = val
 }
 
@@ -454,7 +465,7 @@ func (s *Coverage) SetStringWrapper(val OptNilString) {
 }
 
 // SetStructValue sets the value of StructValue.
-func (s *Coverage) SetStructValue(val OptCoverageStructValue) {
+func (s *Coverage) SetStructValue(val jx.Raw) {
 	s.StructValue = val
 }
 
@@ -469,24 +480,13 @@ func (s *Coverage) SetUint32Value(val OptInt32) {
 }
 
 // SetUint64Value sets the value of Uint64Value.
-func (s *Coverage) SetUint64Value(val OptInt64) {
+func (s *Coverage) SetUint64Value(val OptStringUint64) {
 	s.Uint64Value = val
 }
 
 // SetUint64Wrapper sets the value of Uint64Wrapper.
-func (s *Coverage) SetUint64Wrapper(val OptNilInt64) {
+func (s *Coverage) SetUint64Wrapper(val OptNilStringUint64) {
 	s.Uint64Wrapper = val
-}
-
-type CoverageAnyValue map[string]jx.Raw
-
-func (s *CoverageAnyValue) init() CoverageAnyValue {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
 }
 
 type CoverageEnumValue string
@@ -607,7 +607,7 @@ func (s *CoverageRepeatedEnumItem) UnmarshalText(data []byte) error {
 type CoverageSearch struct {
 	Type           CoverageSearchType // switch on this field
 	String         string
-	Int64          int64
+	Int32          int32
 	NestedCoverage NestedCoverage
 }
 
@@ -617,15 +617,15 @@ type CoverageSearchType string
 // Possible values for CoverageSearchType.
 const (
 	StringCoverageSearch         CoverageSearchType = "string"
-	Int64CoverageSearch          CoverageSearchType = "int64"
+	Int32CoverageSearch          CoverageSearchType = "int32"
 	NestedCoverageCoverageSearch CoverageSearchType = "NestedCoverage"
 )
 
 // IsString reports whether CoverageSearch is string.
 func (s CoverageSearch) IsString() bool { return s.Type == StringCoverageSearch }
 
-// IsInt64 reports whether CoverageSearch is int64.
-func (s CoverageSearch) IsInt64() bool { return s.Type == Int64CoverageSearch }
+// IsInt32 reports whether CoverageSearch is int32.
+func (s CoverageSearch) IsInt32() bool { return s.Type == Int32CoverageSearch }
 
 // IsNestedCoverage reports whether CoverageSearch is NestedCoverage.
 func (s CoverageSearch) IsNestedCoverage() bool { return s.Type == NestedCoverageCoverageSearch }
@@ -651,24 +651,24 @@ func NewStringCoverageSearch(v string) CoverageSearch {
 	return s
 }
 
-// SetInt64 sets CoverageSearch to int64.
-func (s *CoverageSearch) SetInt64(v int64) {
-	s.Type = Int64CoverageSearch
-	s.Int64 = v
+// SetInt32 sets CoverageSearch to int32.
+func (s *CoverageSearch) SetInt32(v int32) {
+	s.Type = Int32CoverageSearch
+	s.Int32 = v
 }
 
-// GetInt64 returns int64 and true boolean if CoverageSearch is int64.
-func (s CoverageSearch) GetInt64() (v int64, ok bool) {
-	if !s.IsInt64() {
+// GetInt32 returns int32 and true boolean if CoverageSearch is int32.
+func (s CoverageSearch) GetInt32() (v int32, ok bool) {
+	if !s.IsInt32() {
 		return v, false
 	}
-	return s.Int64, true
+	return s.Int32, true
 }
 
-// NewInt64CoverageSearch returns new CoverageSearch from int64.
-func NewInt64CoverageSearch(v int64) CoverageSearch {
+// NewInt32CoverageSearch returns new CoverageSearch from int32.
+func NewInt32CoverageSearch(v int32) CoverageSearch {
 	var s CoverageSearch
-	s.SetInt64(v)
+	s.SetInt32(v)
 	return s
 }
 
@@ -699,17 +699,6 @@ func (s *CoverageStringInt64Map) init() CoverageStringInt64Map {
 	m := *s
 	if m == nil {
 		m = map[string]int64{}
-		*s = m
-	}
-	return m
-}
-
-type CoverageStructValue map[string]jx.Raw
-
-func (s *CoverageStructValue) init() CoverageStructValue {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
 		*s = m
 	}
 	return m
@@ -801,13 +790,19 @@ func (s *EchoCoverageResponse) SetPayload(val Coverage) {
 
 // Ref: #/components/schemas/Error
 type Error struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+	Code    string   `json:"code"`
+	Details []jx.Raw `json:"details"`
+	Message string   `json:"message"`
 }
 
 // GetCode returns the value of Code.
 func (s *Error) GetCode() string {
 	return s.Code
+}
+
+// GetDetails returns the value of Details.
+func (s *Error) GetDetails() []jx.Raw {
+	return s.Details
 }
 
 // GetMessage returns the value of Message.
@@ -818,6 +813,11 @@ func (s *Error) GetMessage() string {
 // SetCode sets the value of Code.
 func (s *Error) SetCode(val string) {
 	s.Code = val
+}
+
+// SetDetails sets the value of Details.
+func (s *Error) SetDetails(val []jx.Raw) {
+	s.Details = val
 }
 
 // SetMessage sets the value of Message.
@@ -958,52 +958,6 @@ func (o OptBool) Get() (v bool, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptBool) Or(d bool) bool {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCoverageAnyValue returns new OptCoverageAnyValue with value set to v.
-func NewOptCoverageAnyValue(v CoverageAnyValue) OptCoverageAnyValue {
-	return OptCoverageAnyValue{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCoverageAnyValue is optional CoverageAnyValue.
-type OptCoverageAnyValue struct {
-	Value CoverageAnyValue
-	Set   bool
-}
-
-// IsSet returns true if OptCoverageAnyValue was set.
-func (o OptCoverageAnyValue) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCoverageAnyValue) Reset() {
-	var v CoverageAnyValue
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCoverageAnyValue) SetTo(v CoverageAnyValue) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCoverageAnyValue) Get() (v CoverageAnyValue, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCoverageAnyValue) Or(d CoverageAnyValue) CoverageAnyValue {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1188,52 +1142,6 @@ func (o OptCoverageStringInt64Map) Get() (v CoverageStringInt64Map, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCoverageStringInt64Map) Or(d CoverageStringInt64Map) CoverageStringInt64Map {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCoverageStructValue returns new OptCoverageStructValue with value set to v.
-func NewOptCoverageStructValue(v CoverageStructValue) OptCoverageStructValue {
-	return OptCoverageStructValue{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCoverageStructValue is optional CoverageStructValue.
-type OptCoverageStructValue struct {
-	Value CoverageStructValue
-	Set   bool
-}
-
-// IsSet returns true if OptCoverageStructValue was set.
-func (o OptCoverageStructValue) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCoverageStructValue) Reset() {
-	var v CoverageStructValue
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCoverageStructValue) SetTo(v CoverageStructValue) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCoverageStructValue) Get() (v CoverageStructValue, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCoverageStructValue) Or(d CoverageStructValue) CoverageStructValue {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1464,52 +1372,6 @@ func (o OptInt32) Get() (v int32, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt32) Or(d int32) int32 {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptInt64 returns new OptInt64 with value set to v.
-func NewOptInt64(v int64) OptInt64 {
-	return OptInt64{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptInt64 is optional int64.
-type OptInt64 struct {
-	Value int64
-	Set   bool
-}
-
-// IsSet returns true if OptInt64 was set.
-func (o OptInt64) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptInt64) Reset() {
-	var v int64
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptInt64) SetTo(v int64) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptInt64) Get() (v int64, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptInt64) Or(d int64) int64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1843,69 +1705,6 @@ func (o OptNilFloat64) Or(d float64) float64 {
 	return d
 }
 
-// NewOptNilInt64 returns new OptNilInt64 with value set to v.
-func NewOptNilInt64(v int64) OptNilInt64 {
-	return OptNilInt64{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptNilInt64 is optional nullable int64.
-type OptNilInt64 struct {
-	Value int64
-	Set   bool
-	Null  bool
-}
-
-// IsSet returns true if OptNilInt64 was set.
-func (o OptNilInt64) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptNilInt64) Reset() {
-	var v int64
-	o.Value = v
-	o.Set = false
-	o.Null = false
-}
-
-// SetTo sets value to v.
-func (o *OptNilInt64) SetTo(v int64) {
-	o.Set = true
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o OptNilInt64) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *OptNilInt64) SetToNull() {
-	o.Set = true
-	o.Null = true
-	var v int64
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptNilInt64) Get() (v int64, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptNilInt64) Or(d int64) int64 {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptNilString returns new OptNilString with value set to v.
 func NewOptNilString(v string) OptNilString {
 	return OptNilString{
@@ -1963,6 +1762,132 @@ func (o OptNilString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilStringInt64 returns new OptNilStringInt64 with value set to v.
+func NewOptNilStringInt64(v int64) OptNilStringInt64 {
+	return OptNilStringInt64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilStringInt64 is optional nullable int64.
+type OptNilStringInt64 struct {
+	Value int64
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilStringInt64 was set.
+func (o OptNilStringInt64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilStringInt64) Reset() {
+	var v int64
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilStringInt64) SetTo(v int64) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilStringInt64) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilStringInt64) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v int64
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilStringInt64) Get() (v int64, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilStringInt64) Or(d int64) int64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilStringUint64 returns new OptNilStringUint64 with value set to v.
+func NewOptNilStringUint64(v uint64) OptNilStringUint64 {
+	return OptNilStringUint64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilStringUint64 is optional nullable uint64.
+type OptNilStringUint64 struct {
+	Value uint64
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilStringUint64 was set.
+func (o OptNilStringUint64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilStringUint64) Reset() {
+	var v uint64
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilStringUint64) SetTo(v uint64) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilStringUint64) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilStringUint64) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v uint64
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilStringUint64) Get() (v uint64, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilStringUint64) Or(d uint64) uint64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -2135,6 +2060,98 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptStringInt64 returns new OptStringInt64 with value set to v.
+func NewOptStringInt64(v int64) OptStringInt64 {
+	return OptStringInt64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptStringInt64 is optional int64.
+type OptStringInt64 struct {
+	Value int64
+	Set   bool
+}
+
+// IsSet returns true if OptStringInt64 was set.
+func (o OptStringInt64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptStringInt64) Reset() {
+	var v int64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptStringInt64) SetTo(v int64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptStringInt64) Get() (v int64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptStringInt64) Or(d int64) int64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptStringUint64 returns new OptStringUint64 with value set to v.
+func NewOptStringUint64(v uint64) OptStringUint64 {
+	return OptStringUint64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptStringUint64 is optional uint64.
+type OptStringUint64 struct {
+	Value uint64
+	Set   bool
+}
+
+// IsSet returns true if OptStringUint64 was set.
+func (o OptStringUint64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptStringUint64) Reset() {
+	var v uint64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptStringUint64) SetTo(v uint64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptStringUint64) Get() (v uint64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptStringUint64) Or(d uint64) uint64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}

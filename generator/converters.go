@@ -24,7 +24,17 @@ var externalImports = map[string]protogen.GoImportPath{
 const (
 	wktTimestamp = "google.protobuf.Timestamp"
 	wktDuration  = "google.protobuf.Duration"
+	wktFieldMask = "google.protobuf.FieldMask"
 )
+
+// wktJSON maps the free-form JSON well-known types to the convert helper suffix
+// used to bridge them (proto message <-> jx.Raw via protojson).
+var wktJSON = map[string]string{
+	"google.protobuf.Struct":    "Struct",
+	"google.protobuf.Value":     "Value",
+	"google.protobuf.ListValue": "ListValue",
+	"google.protobuf.Any":       "Any",
+}
 
 var wktWrappers = map[string]bool{
 	"google.protobuf.StringValue": true,
@@ -204,6 +214,8 @@ func (c *convGen) genMessage(msg *protogen.Message, ot *ir.Type) {
 // goType renders the Go type expression for an ogen ir.Type within the converter file.
 func (c *convGen) goType(t *ir.Type) string {
 	switch {
+	case t.Go() == "jx.Raw":
+		return c.gf.QualifiedGoIdent(protogen.GoIdent{GoName: "Raw", GoImportPath: "github.com/go-faster/jx"})
 	case isMultipart(t):
 		return c.gf.QualifiedGoIdent(protogen.GoIdent{GoName: "MultipartFile", GoImportPath: "github.com/ogen-go/ogen/http"})
 	case externalImports[t.Go()] != "":
