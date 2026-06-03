@@ -800,6 +800,19 @@ message CoveragePayload {
     int32 kind_int = 73;
     int32 kind_count = 74;
   }
+
+  // A message named Duration that is NOT google.protobuf.Duration. Its simple
+  // name shadows the WKT, so the generator must qualify the component name
+  // (GoldenDuration) to avoid colliding with the OptDuration wrapper ogen derives
+  // for duration_value above. Mirrors vendored schemapb.Duration.
+  Duration shadow_duration = 75;
+}
+
+// OpenAPI: a user message that shadows google.protobuf.Duration by simple name.
+// Must NOT take the component name "Duration".
+message Duration {
+  string label = 1;
+  int64 seconds = 2;
 }
 
 // OpenAPI: raw file upload body. Request body content type is image/png and

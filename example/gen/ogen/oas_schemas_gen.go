@@ -97,6 +97,7 @@ type Coverage struct {
 	Search         OptCoverageSearch          `json:"search"`
 	Sfixed32Value  OptInt32                   `json:"sfixed32Value"`
 	Sfixed64Value  OptStringInt64             `json:"sfixed64Value"`
+	ShadowDuration OptGoldenDuration          `json:"shadowDuration"`
 	Sint32Value    OptInt32                   `json:"sint32Value"`
 	Sint64Value    OptStringInt64             `json:"sint64Value"`
 	StringInt64Map OptCoverageStringInt64Map  `json:"stringInt64Map"`
@@ -272,6 +273,11 @@ func (s *Coverage) GetSfixed32Value() OptInt32 {
 // GetSfixed64Value returns the value of Sfixed64Value.
 func (s *Coverage) GetSfixed64Value() OptStringInt64 {
 	return s.Sfixed64Value
+}
+
+// GetShadowDuration returns the value of ShadowDuration.
+func (s *Coverage) GetShadowDuration() OptGoldenDuration {
+	return s.ShadowDuration
 }
 
 // GetSint32Value returns the value of Sint32Value.
@@ -487,6 +493,11 @@ func (s *Coverage) SetSfixed32Value(val OptInt32) {
 // SetSfixed64Value sets the value of Sfixed64Value.
 func (s *Coverage) SetSfixed64Value(val OptStringInt64) {
 	s.Sfixed64Value = val
+}
+
+// SetShadowDuration sets the value of ShadowDuration.
+func (s *Coverage) SetShadowDuration(val OptGoldenDuration) {
+	s.ShadowDuration = val
 }
 
 // SetSint32Value sets the value of Sint32Value.
@@ -932,6 +943,32 @@ func (s *GetHealthResponse) GetStatus() string {
 // SetStatus sets the value of Status.
 func (s *GetHealthResponse) SetStatus(val string) {
 	s.Status = val
+}
+
+// Ref: #/components/schemas/GoldenDuration
+type GoldenDuration struct {
+	Label   OptString      `json:"label"`
+	Seconds OptStringInt64 `json:"seconds"`
+}
+
+// GetLabel returns the value of Label.
+func (s *GoldenDuration) GetLabel() OptString {
+	return s.Label
+}
+
+// GetSeconds returns the value of Seconds.
+func (s *GoldenDuration) GetSeconds() OptStringInt64 {
+	return s.Seconds
+}
+
+// SetLabel sets the value of Label.
+func (s *GoldenDuration) SetLabel(val OptString) {
+	s.Label = val
+}
+
+// SetSeconds sets the value of Seconds.
+func (s *GoldenDuration) SetSeconds(val OptStringInt64) {
+	s.Seconds = val
 }
 
 type ListUsersFilters map[string]string
@@ -1407,6 +1444,52 @@ func (o OptFloat64) Get() (v float64, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptFloat64) Or(d float64) float64 {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptGoldenDuration returns new OptGoldenDuration with value set to v.
+func NewOptGoldenDuration(v GoldenDuration) OptGoldenDuration {
+	return OptGoldenDuration{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGoldenDuration is optional GoldenDuration.
+type OptGoldenDuration struct {
+	Value GoldenDuration
+	Set   bool
+}
+
+// IsSet returns true if OptGoldenDuration was set.
+func (o OptGoldenDuration) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGoldenDuration) Reset() {
+	var v GoldenDuration
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGoldenDuration) SetTo(v GoldenDuration) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGoldenDuration) Get() (v GoldenDuration, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGoldenDuration) Or(d GoldenDuration) GoldenDuration {
 	if v, ok := o.Get(); ok {
 		return v
 	}

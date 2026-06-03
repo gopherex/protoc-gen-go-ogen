@@ -179,36 +179,43 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 	if src.FieldMaskValue != nil {
 		dst.FieldMaskValue.SetTo(convert.FieldMaskToString(src.GetFieldMaskValue()))
 	}
-	switch src.GetSearch().(type) {
-	case *CoveragePayload_SearchText:
-		sum14 := ogen.NewStringCoverageSearch(string(src.GetSearchText()))
-		dst.Search.SetTo(sum14)
-	case *CoveragePayload_SearchId:
-		sum15 := ogen.NewInt32CoverageSearch(int32(src.GetSearchId()))
-		dst.Search.SetTo(sum15)
-	case *CoveragePayload_SearchNested:
-		o16, err := src.GetSearchNested().ToOgen()
+	if src.ShadowDuration != nil {
+		o14, err := src.GetShadowDuration().ToOgen()
 		if err != nil {
 			return nil, err
 		}
-		sum17 := ogen.NewNestedCoverageCoverageSearch(*o16)
-		dst.Search.SetTo(sum17)
+		dst.ShadowDuration.SetTo(*o14)
+	}
+	switch src.GetSearch().(type) {
+	case *CoveragePayload_SearchText:
+		sum15 := ogen.NewStringCoverageSearch(string(src.GetSearchText()))
+		dst.Search.SetTo(sum15)
+	case *CoveragePayload_SearchId:
+		sum16 := ogen.NewInt32CoverageSearch(int32(src.GetSearchId()))
+		dst.Search.SetTo(sum16)
+	case *CoveragePayload_SearchNested:
+		o17, err := src.GetSearchNested().ToOgen()
+		if err != nil {
+			return nil, err
+		}
+		sum18 := ogen.NewNestedCoverageCoverageSearch(*o17)
+		dst.Search.SetTo(sum18)
 	}
 	switch src.GetRef().(type) {
 	case *CoveragePayload_RefId:
-		ext18, err := uuid.Parse(src.GetRefId())
+		ext19, err := uuid.Parse(src.GetRefId())
 		if err != nil {
 			return nil, err
 		}
-		dst.RefId.SetTo(ext18)
+		dst.RefId.SetTo(ext19)
 	case *CoveragePayload_RefSlug:
 		dst.RefSlug.SetTo(string(src.GetRefSlug()))
 	case *CoveragePayload_RefNested:
-		o19, err := src.GetRefNested().ToOgen()
+		o20, err := src.GetRefNested().ToOgen()
 		if err != nil {
 			return nil, err
 		}
-		dst.RefNested.SetTo(*o19)
+		dst.RefNested.SetTo(*o20)
 	}
 	switch src.GetKind().(type) {
 	case *CoveragePayload_KindInt:
@@ -391,38 +398,45 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 	if v44, ok := src.FieldMaskValue.Get(); ok {
 		dst.FieldMaskValue = convert.StringToFieldMask(v44)
 	}
-	if s45, ok := src.Search.Get(); ok {
-		switch s45.Type {
-		case ogen.StringCoverageSearch:
-			dst.Search = &CoveragePayload_SearchText{SearchText: string(s45.String)}
-		case ogen.Int32CoverageSearch:
-			dst.Search = &CoveragePayload_SearchId{SearchId: int32(s45.Int32)}
-		case ogen.NestedCoverageCoverageSearch:
-			m46, err := NestedCoverageFromOgen(&s45.NestedCoverage)
-			if err != nil {
-				return nil, err
-			}
-			dst.Search = &CoveragePayload_SearchNested{SearchNested: m46}
-		}
-	}
-	if v47, ok := src.RefId.Get(); ok {
-		dst.Ref = &CoveragePayload_RefId{RefId: v47.String()}
-	}
-	if v48, ok := src.RefSlug.Get(); ok {
-		dst.Ref = &CoveragePayload_RefSlug{RefSlug: string(v48)}
-	}
-	if v49, ok := src.RefNested.Get(); ok {
-		m50, err := NestedCoverageFromOgen(&v49)
+	if v45, ok := src.ShadowDuration.Get(); ok {
+		m46, err := DurationFromOgen(&v45)
 		if err != nil {
 			return nil, err
 		}
-		dst.Ref = &CoveragePayload_RefNested{RefNested: m50}
+		dst.ShadowDuration = m46
 	}
-	if v51, ok := src.KindInt.Get(); ok {
-		dst.Kind = &CoveragePayload_KindInt{KindInt: int32(v51)}
+	if s47, ok := src.Search.Get(); ok {
+		switch s47.Type {
+		case ogen.StringCoverageSearch:
+			dst.Search = &CoveragePayload_SearchText{SearchText: string(s47.String)}
+		case ogen.Int32CoverageSearch:
+			dst.Search = &CoveragePayload_SearchId{SearchId: int32(s47.Int32)}
+		case ogen.NestedCoverageCoverageSearch:
+			m48, err := NestedCoverageFromOgen(&s47.NestedCoverage)
+			if err != nil {
+				return nil, err
+			}
+			dst.Search = &CoveragePayload_SearchNested{SearchNested: m48}
+		}
 	}
-	if v52, ok := src.KindCount.Get(); ok {
-		dst.Kind = &CoveragePayload_KindCount{KindCount: int32(v52)}
+	if v49, ok := src.RefId.Get(); ok {
+		dst.Ref = &CoveragePayload_RefId{RefId: v49.String()}
+	}
+	if v50, ok := src.RefSlug.Get(); ok {
+		dst.Ref = &CoveragePayload_RefSlug{RefSlug: string(v50)}
+	}
+	if v51, ok := src.RefNested.Get(); ok {
+		m52, err := NestedCoverageFromOgen(&v51)
+		if err != nil {
+			return nil, err
+		}
+		dst.Ref = &CoveragePayload_RefNested{RefNested: m52}
+	}
+	if v53, ok := src.KindInt.Get(); ok {
+		dst.Kind = &CoveragePayload_KindInt{KindInt: int32(v53)}
+	}
+	if v54, ok := src.KindCount.Get(); ok {
+		dst.Kind = &CoveragePayload_KindCount{KindCount: int32(v54)}
 	}
 	return dst, nil
 }
@@ -569,6 +583,32 @@ func ErrorFromOgen(src *ogen.Error) (*Error, error) {
 		return nil, err
 	}
 	dst.Details = c1
+	return dst, nil
+}
+
+// ToOgen converts Duration to its ogen representation.
+func (src *Duration) ToOgen() (*ogen.GoldenDuration, error) {
+	var dst ogen.GoldenDuration
+	if src == nil {
+		return &dst, nil
+	}
+	dst.Label.SetTo(string(src.GetLabel()))
+	dst.Seconds.SetTo(int64(src.GetSeconds()))
+	return &dst, nil
+}
+
+// DurationFromOgen converts the ogen representation back to Duration.
+func DurationFromOgen(src *ogen.GoldenDuration) (*Duration, error) {
+	if src == nil {
+		return nil, nil
+	}
+	dst := &Duration{}
+	if v1, ok := src.Label.Get(); ok {
+		dst.Label = string(v1)
+	}
+	if v2, ok := src.Seconds.Get(); ok {
+		dst.Seconds = int64(v2)
+	}
 	return dst, nil
 }
 

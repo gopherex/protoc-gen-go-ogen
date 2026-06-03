@@ -292,6 +292,12 @@ func (g *OpenAPIGenerator) collectComponentNames(messages []*protogen.Message) {
 		}
 		if name == "" {
 			name = componentNameFromFullName(msg.Desc.FullName())
+			// A non-WKT message whose simple name shadows a well-known type (e.g.
+			// schemapb.Duration) would take the same Go name ogen derives for the
+			// WKT's optional wrapper (OptDuration), colliding. Qualify it.
+			if reservedWKTName(name) {
+				name = qualifiedComponentName(msg.Desc.FullName())
+			}
 		}
 		g.componentName[msg.Desc.FullName()] = uniqueComponentName(name, g.componentName)
 		g.collectComponentNames(msg.Messages)
@@ -1174,6 +1180,32 @@ func componentNameFromFullName(name protoreflect.FullName) string {
 		return string(name)
 	}
 	return parts[len(parts)-1]
+}
+
+// reservedWKTSimpleNames are the Go-identifier simple names of the well-known
+// types the generator renders inline (not as components). A user message taking
+// one of these names would collide with the Go type/optional wrapper ogen derives
+// for the corresponding WKT (e.g. Duration -> OptDuration).
+var reservedWKTSimpleNames = map[string]bool{
+	"Timestamp": true, "Duration": true, "FieldMask": true, "Empty": true,
+	"Struct": true, "Any": true, "Value": true, "ListValue": true,
+	"StringValue": true, "Int32Value": true, "Int64Value": true,
+	"UInt32Value": true, "UInt64Value": true, "FloatValue": true,
+	"DoubleValue": true, "BoolValue": true, "BytesValue": true,
+}
+
+func reservedWKTName(name string) bool { return reservedWKTSimpleNames[name] }
+
+// qualifiedComponentName prefixes a message's simple name with its immediate
+// qualifier (package last segment or enclosing message), e.g. schemapb.Duration
+// -> SchemapbDuration.
+func qualifiedComponentName(full protoreflect.FullName) string {
+	parts := strings.Split(string(full), ".")
+	simple := parts[len(parts)-1]
+	if len(parts) < 2 {
+		return simple
+	}
+	return capitalize(parts[len(parts)-2]) + simple
 }
 
 func uniqueComponentName(name string, existing map[protoreflect.FullName]string) string {

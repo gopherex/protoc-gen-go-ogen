@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/gopherex/protoc-gen-go-ogen/ogen"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func TestMergeOperationMaps(t *testing.T) {
@@ -96,6 +97,29 @@ func TestCheckUniqueOperationIDs(t *testing.T) {
 			t.Fatalf("empty ids must not collide, got %v", err)
 		}
 	})
+}
+
+func TestReservedWKTNameQualification(t *testing.T) {
+	for _, n := range []string{"Duration", "Timestamp", "Any", "Struct", "Value", "ListValue", "FieldMask", "Empty", "Int64Value"} {
+		if !reservedWKTName(n) {
+			t.Fatalf("%q must be reserved", n)
+		}
+	}
+	if reservedWKTName("User") {
+		t.Fatal("User must not be reserved")
+	}
+
+	cases := map[string]string{
+		"schemapb.Duration":       "SchemapbDuration",
+		"example.golden.Duration": "GoldenDuration",
+		"a.b.c.Timestamp":         "CTimestamp",
+		"Duration":                "Duration", // no qualifier available
+	}
+	for full, want := range cases {
+		if got := qualifiedComponentName(protoreflect.FullName(full)); got != want {
+			t.Fatalf("qualifiedComponentName(%q) = %q, want %q", full, got, want)
+		}
+	}
 }
 
 func TestParseOneofSchemaMode(t *testing.T) {

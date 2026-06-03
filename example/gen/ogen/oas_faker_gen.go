@@ -224,6 +224,11 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
+			s.ShadowDuration.SetFake()
+		}
+	}
+	{
+		{
 			s.Sint32Value.SetFake()
 		}
 	}
@@ -370,6 +375,20 @@ func (s *GetHealthResponse) SetFake() {
 }
 
 // SetFake set fake values.
+func (s *GoldenDuration) SetFake() {
+	{
+		{
+			s.Label.SetFake()
+		}
+	}
+	{
+		{
+			s.Seconds.SetFake()
+		}
+	}
+}
+
+// SetFake set fake values.
 func (s *ListUsersResponse) SetFake() {
 	{
 		{
@@ -481,6 +500,15 @@ func (s *OptFloat64) SetFake() {
 	var elem float64
 	{
 		elem = float64(0)
+	}
+	s.SetTo(elem)
+}
+
+// SetFake set fake values.
+func (s *OptGoldenDuration) SetFake() {
+	var elem GoldenDuration
+	{
+		elem.SetFake()
 	}
 	s.SetTo(elem)
 }

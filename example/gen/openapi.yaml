@@ -143,6 +143,8 @@ components:
                 sfixed64Value:
                     format: int64
                     type: string
+                shadowDuration:
+                    $ref: '#/components/schemas/GoldenDuration'
                 sint32Value:
                     format: int32
                     type: integer
@@ -285,6 +287,15 @@ components:
                     $ref: '#/components/schemas/User'
             required:
                 - user
+            type: object
+        GoldenDuration:
+            additionalProperties: false
+            properties:
+                label:
+                    type: string
+                seconds:
+                    format: int64
+                    type: string
             type: object
         ListUsersRequest:
             additionalProperties: false

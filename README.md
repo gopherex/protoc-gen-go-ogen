@@ -224,7 +224,10 @@ HTTP method.
 returning an error. Built from ogen's IR for exact type/field names; nested
 structs, enums, oneof↔sum, maps, repeated, well-known types, `uuid`/`uri`/`ip`
 formats, and multipart file bytes are handled. Slice/map/timestamp bridging uses
-the `convert` runtime package.
+the `convert` runtime package. A user message whose simple name shadows a
+well-known type (e.g. a `Duration` that is not `google.protobuf.Duration`) is
+auto-qualified (`SchemapbDuration`) so it does not collide with the Go type ogen
+derives for the WKT; override with `(ogen.message).schema_name`.
 
 **gRPC adapter.** `OgenAdapter` implements the ogen `Handler` (and
 `WebhookHandler`) by delegating to the gRPC `<Service>Server` implementations.

@@ -379,6 +379,12 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.ShadowDuration.Set {
+			e.FieldStart("shadowDuration")
+			s.ShadowDuration.Encode(e)
+		}
+	}
+	{
 		if s.Sint32Value.Set {
 			e.FieldStart("sint32Value")
 			s.Sint32Value.Encode(e)
@@ -440,7 +446,7 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCoverage = [43]string{
+var jsonFieldsNameOfCoverage = [44]string{
 	0:  "anyJsonValue",
 	1:  "anyValue",
 	2:  "boolValue",
@@ -474,16 +480,17 @@ var jsonFieldsNameOfCoverage = [43]string{
 	30: "search",
 	31: "sfixed32Value",
 	32: "sfixed64Value",
-	33: "sint32Value",
-	34: "sint64Value",
-	35: "stringInt64Map",
-	36: "stringValue",
-	37: "stringWrapper",
-	38: "structValue",
-	39: "timestampValue",
-	40: "uint32Value",
-	41: "uint64Value",
-	42: "uint64Wrapper",
+	33: "shadowDuration",
+	34: "sint32Value",
+	35: "sint64Value",
+	36: "stringInt64Map",
+	37: "stringValue",
+	38: "stringWrapper",
+	39: "structValue",
+	40: "timestampValue",
+	41: "uint32Value",
+	42: "uint64Value",
+	43: "uint64Wrapper",
 }
 
 // Decode decodes Coverage from json.
@@ -852,6 +859,16 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"sfixed64Value\"")
+			}
+		case "shadowDuration":
+			if err := func() error {
+				s.ShadowDuration.Reset()
+				if err := s.ShadowDuration.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shadowDuration\"")
 			}
 		case "sint32Value":
 			if err := func() error {
@@ -1661,6 +1678,86 @@ func (s *GetHealthResponse) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *GoldenDuration) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *GoldenDuration) encodeFields(e *jx.Encoder) {
+	{
+		if s.Label.Set {
+			e.FieldStart("label")
+			s.Label.Encode(e)
+		}
+	}
+	{
+		if s.Seconds.Set {
+			e.FieldStart("seconds")
+			s.Seconds.Encode(e)
+		}
+	}
+}
+
+var jsonFieldsNameOfGoldenDuration = [2]string{
+	0: "label",
+	1: "seconds",
+}
+
+// Decode decodes GoldenDuration from json.
+func (s *GoldenDuration) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GoldenDuration to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "label":
+			if err := func() error {
+				s.Label.Reset()
+				if err := s.Label.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"label\"")
+			}
+		case "seconds":
+			if err := func() error {
+				s.Seconds.Reset()
+				if err := s.Seconds.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"seconds\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode GoldenDuration")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GoldenDuration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GoldenDuration) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *ListUsersResponse) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -2168,6 +2265,39 @@ func (s OptFloat64) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptFloat64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GoldenDuration as json.
+func (o OptGoldenDuration) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes GoldenDuration from json.
+func (o *OptGoldenDuration) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptGoldenDuration to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptGoldenDuration) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptGoldenDuration) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

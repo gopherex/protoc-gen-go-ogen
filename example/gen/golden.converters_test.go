@@ -108,6 +108,26 @@ func TestErrorOgenRoundTrip(t *testing.T) {
 	}
 }
 
+func TestDurationOgenRoundTrip(t *testing.T) {
+	var o ogen.GoldenDuration
+	o.SetFake()
+	a, err := DurationFromOgen(&o)
+	if err != nil {
+		t.Fatalf("DurationFromOgen: %v", err)
+	}
+	oa, err := a.ToOgen()
+	if err != nil {
+		t.Fatalf("Duration.ToOgen: %v", err)
+	}
+	b, err := DurationFromOgen(oa)
+	if err != nil {
+		t.Fatalf("DurationFromOgen (2nd): %v", err)
+	}
+	if !proto.Equal(a, b) {
+		t.Fatalf("Duration round-trip mismatch:\n a: %v\n b: %v", a, b)
+	}
+}
+
 func TestListUsersResponseOgenRoundTrip(t *testing.T) {
 	var o ogen.ListUsersResponse
 	o.SetFake()

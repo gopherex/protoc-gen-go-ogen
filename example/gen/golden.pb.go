@@ -966,9 +966,14 @@ type CoveragePayload struct {
 	//
 	//	*CoveragePayload_KindInt
 	//	*CoveragePayload_KindCount
-	Kind          isCoveragePayload_Kind `protobuf_oneof:"kind"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Kind isCoveragePayload_Kind `protobuf_oneof:"kind"`
+	// A message named Duration that is NOT google.protobuf.Duration. Its simple
+	// name shadows the WKT, so the generator must qualify the component name
+	// (GoldenDuration) to avoid colliding with the OptDuration wrapper ogen derives
+	// for duration_value above. Mirrors vendored schemapb.Duration.
+	ShadowDuration *Duration `protobuf:"bytes,75,opt,name=shadow_duration,json=shadowDuration,proto3" json:"shadow_duration,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *CoveragePayload) Reset() {
@@ -1353,6 +1358,13 @@ func (x *CoveragePayload) GetKindCount() int32 {
 	return 0
 }
 
+func (x *CoveragePayload) GetShadowDuration() *Duration {
+	if x != nil {
+		return x.ShadowDuration
+	}
+	return nil
+}
+
 type isCoveragePayload_Search interface {
 	isCoveragePayload_Search()
 }
@@ -1416,6 +1428,60 @@ func (*CoveragePayload_KindInt) isCoveragePayload_Kind() {}
 
 func (*CoveragePayload_KindCount) isCoveragePayload_Kind() {}
 
+// OpenAPI: a user message that shadows google.protobuf.Duration by simple name.
+// Must NOT take the component name "Duration".
+type Duration struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Label         string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	Seconds       int64                  `protobuf:"varint,2,opt,name=seconds,proto3" json:"seconds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Duration) Reset() {
+	*x = Duration{}
+	mi := &file_golden_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Duration) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Duration) ProtoMessage() {}
+
+func (x *Duration) ProtoReflect() protoreflect.Message {
+	mi := &file_golden_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Duration.ProtoReflect.Descriptor instead.
+func (*Duration) Descriptor() ([]byte, []int) {
+	return file_golden_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Duration) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *Duration) GetSeconds() int64 {
+	if x != nil {
+		return x.Seconds
+	}
+	return 0
+}
+
 // OpenAPI: raw file upload body. Request body content type is image/png and
 // schema is string/binary. Ogen should generate UploadAvatarReq with io.Reader.
 type UploadAvatarRequest struct {
@@ -1427,7 +1493,7 @@ type UploadAvatarRequest struct {
 
 func (x *UploadAvatarRequest) Reset() {
 	*x = UploadAvatarRequest{}
-	mi := &file_golden_proto_msgTypes[14]
+	mi := &file_golden_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1439,7 +1505,7 @@ func (x *UploadAvatarRequest) String() string {
 func (*UploadAvatarRequest) ProtoMessage() {}
 
 func (x *UploadAvatarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[14]
+	mi := &file_golden_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1452,7 +1518,7 @@ func (x *UploadAvatarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAvatarRequest.ProtoReflect.Descriptor instead.
 func (*UploadAvatarRequest) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{14}
+	return file_golden_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *UploadAvatarRequest) GetData() []byte {
@@ -1477,7 +1543,7 @@ type CreatePostRequest struct {
 
 func (x *CreatePostRequest) Reset() {
 	*x = CreatePostRequest{}
-	mi := &file_golden_proto_msgTypes[15]
+	mi := &file_golden_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1489,7 +1555,7 @@ func (x *CreatePostRequest) String() string {
 func (*CreatePostRequest) ProtoMessage() {}
 
 func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[15]
+	mi := &file_golden_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1502,7 +1568,7 @@ func (x *CreatePostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePostRequest.ProtoReflect.Descriptor instead.
 func (*CreatePostRequest) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{15}
+	return file_golden_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreatePostRequest) GetTitle() string {
@@ -1547,7 +1613,7 @@ type UserChangedEvent struct {
 
 func (x *UserChangedEvent) Reset() {
 	*x = UserChangedEvent{}
-	mi := &file_golden_proto_msgTypes[16]
+	mi := &file_golden_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1559,7 +1625,7 @@ func (x *UserChangedEvent) String() string {
 func (*UserChangedEvent) ProtoMessage() {}
 
 func (x *UserChangedEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[16]
+	mi := &file_golden_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +1638,7 @@ func (x *UserChangedEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserChangedEvent.ProtoReflect.Descriptor instead.
 func (*UserChangedEvent) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{16}
+	return file_golden_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UserChangedEvent) GetDeliveryId() string {
@@ -1602,7 +1668,7 @@ type UserChangedPayload struct {
 
 func (x *UserChangedPayload) Reset() {
 	*x = UserChangedPayload{}
-	mi := &file_golden_proto_msgTypes[17]
+	mi := &file_golden_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1614,7 +1680,7 @@ func (x *UserChangedPayload) String() string {
 func (*UserChangedPayload) ProtoMessage() {}
 
 func (x *UserChangedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[17]
+	mi := &file_golden_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1627,7 +1693,7 @@ func (x *UserChangedPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserChangedPayload.ProtoReflect.Descriptor instead.
 func (*UserChangedPayload) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{17}
+	return file_golden_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UserChangedPayload) GetAction() string {
@@ -1658,7 +1724,7 @@ type NestedCoverage struct {
 
 func (x *NestedCoverage) Reset() {
 	*x = NestedCoverage{}
-	mi := &file_golden_proto_msgTypes[18]
+	mi := &file_golden_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1670,7 +1736,7 @@ func (x *NestedCoverage) String() string {
 func (*NestedCoverage) ProtoMessage() {}
 
 func (x *NestedCoverage) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[18]
+	mi := &file_golden_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1683,7 +1749,7 @@ func (x *NestedCoverage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NestedCoverage.ProtoReflect.Descriptor instead.
 func (*NestedCoverage) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{18}
+	return file_golden_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *NestedCoverage) GetName() string {
@@ -1717,7 +1783,7 @@ type Error struct {
 
 func (x *Error) Reset() {
 	*x = Error{}
-	mi := &file_golden_proto_msgTypes[19]
+	mi := &file_golden_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1729,7 +1795,7 @@ func (x *Error) String() string {
 func (*Error) ProtoMessage() {}
 
 func (x *Error) ProtoReflect() protoreflect.Message {
-	mi := &file_golden_proto_msgTypes[19]
+	mi := &file_golden_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1742,7 +1808,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Error.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
-	return file_golden_proto_rawDescGZIP(), []int{19}
+	return file_golden_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *Error) GetCode() string {
@@ -1839,7 +1905,7 @@ const file_golden_proto_rawDesc = "" +
 	"\x14EchoCoverageResponse\x12A\n" +
 	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"4\n" +
 	"\x14WatchCoverageRequest\x12\x1c\n" +
-	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\xcb\x14\n" +
+	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\x8e\x15\n" +
 	"\x0fCoveragePayload\x12!\n" +
 	"\fdouble_value\x18\x01 \x01(\x01R\vdoubleValue\x12\x1f\n" +
 	"\vfloat_value\x18\x02 \x01(\x02R\n" +
@@ -1897,7 +1963,8 @@ const file_golden_proto_rawDesc = "" +
 	"ref_nested\x18H \x01(\v2\x1e.example.golden.NestedCoverageH\x01R\trefNested\x12\x1b\n" +
 	"\bkind_int\x18I \x01(\x05H\x02R\akindInt\x12\x1f\n" +
 	"\n" +
-	"kind_count\x18J \x01(\x05H\x02R\tkindCount\x1aA\n" +
+	"kind_count\x18J \x01(\x05H\x02R\tkindCount\x12A\n" +
+	"\x0fshadow_duration\x18K \x01(\v2\x18.example.golden.DurationR\x0eshadowDuration\x1aA\n" +
 	"\x13StringInt64MapEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\x1a\\\n" +
@@ -1910,7 +1977,10 @@ const file_golden_proto_rawDesc = "" +
 	"\x03ref\x12\x06\xf2\xa7\x1d\x02\b\x03B\x06\n" +
 	"\x04kindB\x12\n" +
 	"\x10_optional_stringB\x11\n" +
-	"\x0f_optional_int64\"5\n" +
+	"\x0f_optional_int64\":\n" +
+	"\bDuration\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12\x18\n" +
+	"\aseconds\x18\x02 \x01(\x03R\aseconds\"5\n" +
 	"\x13UploadAvatarRequest\x12\x1e\n" +
 	"\x04data\x18\x01 \x01(\fB\n" +
 	"\xf2\xa7\x1d\x06\x10\x01\"\x02P\x02R\x04data\"\xf4\x01\n" +
@@ -2006,7 +2076,7 @@ func file_golden_proto_rawDescGZIP() []byte {
 }
 
 var file_golden_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_golden_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_golden_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_golden_proto_goTypes = []any{
 	(UserStatus)(0),                // 0: example.golden.UserStatus
 	(*GetUserRequest)(nil),         // 1: example.golden.GetUserRequest
@@ -2023,93 +2093,95 @@ var file_golden_proto_goTypes = []any{
 	(*EchoCoverageResponse)(nil),   // 12: example.golden.EchoCoverageResponse
 	(*WatchCoverageRequest)(nil),   // 13: example.golden.WatchCoverageRequest
 	(*CoveragePayload)(nil),        // 14: example.golden.CoveragePayload
-	(*UploadAvatarRequest)(nil),    // 15: example.golden.UploadAvatarRequest
-	(*CreatePostRequest)(nil),      // 16: example.golden.CreatePostRequest
-	(*UserChangedEvent)(nil),       // 17: example.golden.UserChangedEvent
-	(*UserChangedPayload)(nil),     // 18: example.golden.UserChangedPayload
-	(*NestedCoverage)(nil),         // 19: example.golden.NestedCoverage
-	(*Error)(nil),                  // 20: example.golden.Error
-	nil,                            // 21: example.golden.ListUsersRequest.FiltersEntry
-	nil,                            // 22: example.golden.UserInput.LabelsEntry
-	nil,                            // 23: example.golden.User.LabelsEntry
-	nil,                            // 24: example.golden.CoveragePayload.StringInt64MapEntry
-	nil,                            // 25: example.golden.CoveragePayload.NestedMapEntry
-	(*timestamppb.Timestamp)(nil),  // 26: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),    // 27: google.protobuf.Duration
-	(*wrapperspb.StringValue)(nil), // 28: google.protobuf.StringValue
-	(*wrapperspb.Int64Value)(nil),  // 29: google.protobuf.Int64Value
-	(*wrapperspb.BoolValue)(nil),   // 30: google.protobuf.BoolValue
-	(*wrapperspb.UInt64Value)(nil), // 31: google.protobuf.UInt64Value
-	(*wrapperspb.DoubleValue)(nil), // 32: google.protobuf.DoubleValue
-	(*wrapperspb.BytesValue)(nil),  // 33: google.protobuf.BytesValue
-	(*structpb.Struct)(nil),        // 34: google.protobuf.Struct
-	(*structpb.Value)(nil),         // 35: google.protobuf.Value
-	(*structpb.ListValue)(nil),     // 36: google.protobuf.ListValue
-	(*anypb.Any)(nil),              // 37: google.protobuf.Any
-	(*fieldmaskpb.FieldMask)(nil),  // 38: google.protobuf.FieldMask
-	(*emptypb.Empty)(nil),          // 39: google.protobuf.Empty
+	(*Duration)(nil),               // 15: example.golden.Duration
+	(*UploadAvatarRequest)(nil),    // 16: example.golden.UploadAvatarRequest
+	(*CreatePostRequest)(nil),      // 17: example.golden.CreatePostRequest
+	(*UserChangedEvent)(nil),       // 18: example.golden.UserChangedEvent
+	(*UserChangedPayload)(nil),     // 19: example.golden.UserChangedPayload
+	(*NestedCoverage)(nil),         // 20: example.golden.NestedCoverage
+	(*Error)(nil),                  // 21: example.golden.Error
+	nil,                            // 22: example.golden.ListUsersRequest.FiltersEntry
+	nil,                            // 23: example.golden.UserInput.LabelsEntry
+	nil,                            // 24: example.golden.User.LabelsEntry
+	nil,                            // 25: example.golden.CoveragePayload.StringInt64MapEntry
+	nil,                            // 26: example.golden.CoveragePayload.NestedMapEntry
+	(*timestamppb.Timestamp)(nil),  // 27: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),    // 28: google.protobuf.Duration
+	(*wrapperspb.StringValue)(nil), // 29: google.protobuf.StringValue
+	(*wrapperspb.Int64Value)(nil),  // 30: google.protobuf.Int64Value
+	(*wrapperspb.BoolValue)(nil),   // 31: google.protobuf.BoolValue
+	(*wrapperspb.UInt64Value)(nil), // 32: google.protobuf.UInt64Value
+	(*wrapperspb.DoubleValue)(nil), // 33: google.protobuf.DoubleValue
+	(*wrapperspb.BytesValue)(nil),  // 34: google.protobuf.BytesValue
+	(*structpb.Struct)(nil),        // 35: google.protobuf.Struct
+	(*structpb.Value)(nil),         // 36: google.protobuf.Value
+	(*structpb.ListValue)(nil),     // 37: google.protobuf.ListValue
+	(*anypb.Any)(nil),              // 38: google.protobuf.Any
+	(*fieldmaskpb.FieldMask)(nil),  // 39: google.protobuf.FieldMask
+	(*emptypb.Empty)(nil),          // 40: google.protobuf.Empty
 }
 var file_golden_proto_depIdxs = []int32{
 	9,  // 0: example.golden.GetUserResponse.user:type_name -> example.golden.User
-	21, // 1: example.golden.ListUsersRequest.filters:type_name -> example.golden.ListUsersRequest.FiltersEntry
+	22, // 1: example.golden.ListUsersRequest.filters:type_name -> example.golden.ListUsersRequest.FiltersEntry
 	9,  // 2: example.golden.ListUsersResponse.users:type_name -> example.golden.User
 	8,  // 3: example.golden.CreateUserRequest.user:type_name -> example.golden.UserInput
 	9,  // 4: example.golden.CreateUserResponse.user:type_name -> example.golden.User
-	22, // 5: example.golden.UserInput.labels:type_name -> example.golden.UserInput.LabelsEntry
+	23, // 5: example.golden.UserInput.labels:type_name -> example.golden.UserInput.LabelsEntry
 	0,  // 6: example.golden.User.status:type_name -> example.golden.UserStatus
 	10, // 7: example.golden.User.addresses:type_name -> example.golden.Address
-	23, // 8: example.golden.User.labels:type_name -> example.golden.User.LabelsEntry
-	26, // 9: example.golden.User.created_at:type_name -> google.protobuf.Timestamp
-	26, // 10: example.golden.User.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 8: example.golden.User.labels:type_name -> example.golden.User.LabelsEntry
+	27, // 9: example.golden.User.created_at:type_name -> google.protobuf.Timestamp
+	27, // 10: example.golden.User.updated_at:type_name -> google.protobuf.Timestamp
 	14, // 11: example.golden.EchoCoverageRequest.payload:type_name -> example.golden.CoveragePayload
 	14, // 12: example.golden.EchoCoverageResponse.payload:type_name -> example.golden.CoveragePayload
-	24, // 13: example.golden.CoveragePayload.string_int64_map:type_name -> example.golden.CoveragePayload.StringInt64MapEntry
-	25, // 14: example.golden.CoveragePayload.nested_map:type_name -> example.golden.CoveragePayload.NestedMapEntry
+	25, // 13: example.golden.CoveragePayload.string_int64_map:type_name -> example.golden.CoveragePayload.StringInt64MapEntry
+	26, // 14: example.golden.CoveragePayload.nested_map:type_name -> example.golden.CoveragePayload.NestedMapEntry
 	0,  // 15: example.golden.CoveragePayload.enum_value:type_name -> example.golden.UserStatus
 	0,  // 16: example.golden.CoveragePayload.repeated_enum:type_name -> example.golden.UserStatus
-	19, // 17: example.golden.CoveragePayload.nested:type_name -> example.golden.NestedCoverage
-	26, // 18: example.golden.CoveragePayload.timestamp_value:type_name -> google.protobuf.Timestamp
-	27, // 19: example.golden.CoveragePayload.duration_value:type_name -> google.protobuf.Duration
-	28, // 20: example.golden.CoveragePayload.string_wrapper:type_name -> google.protobuf.StringValue
-	29, // 21: example.golden.CoveragePayload.int64_wrapper:type_name -> google.protobuf.Int64Value
-	30, // 22: example.golden.CoveragePayload.bool_wrapper:type_name -> google.protobuf.BoolValue
-	31, // 23: example.golden.CoveragePayload.uint64_wrapper:type_name -> google.protobuf.UInt64Value
-	32, // 24: example.golden.CoveragePayload.double_wrapper:type_name -> google.protobuf.DoubleValue
-	33, // 25: example.golden.CoveragePayload.bytes_wrapper:type_name -> google.protobuf.BytesValue
-	34, // 26: example.golden.CoveragePayload.struct_value:type_name -> google.protobuf.Struct
-	35, // 27: example.golden.CoveragePayload.any_json_value:type_name -> google.protobuf.Value
-	36, // 28: example.golden.CoveragePayload.list_value:type_name -> google.protobuf.ListValue
-	37, // 29: example.golden.CoveragePayload.any_value:type_name -> google.protobuf.Any
-	38, // 30: example.golden.CoveragePayload.field_mask_value:type_name -> google.protobuf.FieldMask
-	19, // 31: example.golden.CoveragePayload.search_nested:type_name -> example.golden.NestedCoverage
-	19, // 32: example.golden.CoveragePayload.ref_nested:type_name -> example.golden.NestedCoverage
-	18, // 33: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
-	9,  // 34: example.golden.UserChangedPayload.user:type_name -> example.golden.User
-	34, // 35: example.golden.Error.details:type_name -> google.protobuf.Struct
-	19, // 36: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
-	1,  // 37: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
-	3,  // 38: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
-	5,  // 39: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
-	7,  // 40: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
-	11, // 41: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
-	13, // 42: example.golden.CoverageAPI.WatchCoverage:input_type -> example.golden.WatchCoverageRequest
-	15, // 43: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
-	16, // 44: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
-	17, // 45: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
-	2,  // 46: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
-	4,  // 47: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
-	6,  // 48: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
-	39, // 49: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
-	12, // 50: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
-	12, // 51: example.golden.CoverageAPI.WatchCoverage:output_type -> example.golden.EchoCoverageResponse
-	39, // 52: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
-	39, // 53: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
-	39, // 54: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
-	46, // [46:55] is the sub-list for method output_type
-	37, // [37:46] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	20, // 17: example.golden.CoveragePayload.nested:type_name -> example.golden.NestedCoverage
+	27, // 18: example.golden.CoveragePayload.timestamp_value:type_name -> google.protobuf.Timestamp
+	28, // 19: example.golden.CoveragePayload.duration_value:type_name -> google.protobuf.Duration
+	29, // 20: example.golden.CoveragePayload.string_wrapper:type_name -> google.protobuf.StringValue
+	30, // 21: example.golden.CoveragePayload.int64_wrapper:type_name -> google.protobuf.Int64Value
+	31, // 22: example.golden.CoveragePayload.bool_wrapper:type_name -> google.protobuf.BoolValue
+	32, // 23: example.golden.CoveragePayload.uint64_wrapper:type_name -> google.protobuf.UInt64Value
+	33, // 24: example.golden.CoveragePayload.double_wrapper:type_name -> google.protobuf.DoubleValue
+	34, // 25: example.golden.CoveragePayload.bytes_wrapper:type_name -> google.protobuf.BytesValue
+	35, // 26: example.golden.CoveragePayload.struct_value:type_name -> google.protobuf.Struct
+	36, // 27: example.golden.CoveragePayload.any_json_value:type_name -> google.protobuf.Value
+	37, // 28: example.golden.CoveragePayload.list_value:type_name -> google.protobuf.ListValue
+	38, // 29: example.golden.CoveragePayload.any_value:type_name -> google.protobuf.Any
+	39, // 30: example.golden.CoveragePayload.field_mask_value:type_name -> google.protobuf.FieldMask
+	20, // 31: example.golden.CoveragePayload.search_nested:type_name -> example.golden.NestedCoverage
+	20, // 32: example.golden.CoveragePayload.ref_nested:type_name -> example.golden.NestedCoverage
+	15, // 33: example.golden.CoveragePayload.shadow_duration:type_name -> example.golden.Duration
+	19, // 34: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
+	9,  // 35: example.golden.UserChangedPayload.user:type_name -> example.golden.User
+	35, // 36: example.golden.Error.details:type_name -> google.protobuf.Struct
+	20, // 37: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
+	1,  // 38: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
+	3,  // 39: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
+	5,  // 40: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
+	7,  // 41: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
+	11, // 42: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
+	13, // 43: example.golden.CoverageAPI.WatchCoverage:input_type -> example.golden.WatchCoverageRequest
+	16, // 44: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
+	17, // 45: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
+	18, // 46: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
+	2,  // 47: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
+	4,  // 48: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
+	6,  // 49: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
+	40, // 50: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
+	12, // 51: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
+	12, // 52: example.golden.CoverageAPI.WatchCoverage:output_type -> example.golden.EchoCoverageResponse
+	40, // 53: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
+	40, // 54: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
+	40, // 55: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
+	47, // [47:56] is the sub-list for method output_type
+	38, // [38:47] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_golden_proto_init() }
@@ -2129,14 +2201,14 @@ func file_golden_proto_init() {
 		(*CoveragePayload_KindInt)(nil),
 		(*CoveragePayload_KindCount)(nil),
 	}
-	file_golden_proto_msgTypes[18].OneofWrappers = []any{}
+	file_golden_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_golden_proto_rawDesc), len(file_golden_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   4,
 		},
