@@ -10,6 +10,10 @@ type PluginSettings struct {
 	// OpenAPIOut is a directory to write generated openapi.yaml file(s) to. Empty
 	// means do not write the OpenAPI document to disk separately.
 	OpenAPIOut string
+	// DefaultOneofSchemaMode overrides the OpenAPI representation for every oneof
+	// across the whole protoc invocation (one_of|any_of|object). Empty defers to
+	// the document's default_oneof_schema_mode file option, then ONE_OF.
+	DefaultOneofSchemaMode string
 }
 
 // RegisterFlags binds plugin settings to a flag set. Wire the flag set's Set
@@ -17,6 +21,7 @@ type PluginSettings struct {
 func (s *PluginSettings) RegisterFlags(fs *flag.FlagSet) {
 	fs.StringVar(&s.OgenConfig, "ogen_config", "", "path to ogen config file (ogen.yml)")
 	fs.StringVar(&s.OpenAPIOut, "openapi_out", "", "directory to write generated openapi.yaml files")
+	fs.StringVar(&s.DefaultOneofSchemaMode, "default_oneof_schema_mode", "", "default oneof OpenAPI mode for all oneofs (one_of|any_of|object)")
 }
 
 // NewPluginSettingsFromPlugin returns the settings already populated by the flag

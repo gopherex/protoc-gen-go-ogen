@@ -50,10 +50,11 @@ var wktWrappers = map[string]bool{
 
 // convGen renders proto <-> ogen converters into a single Go file.
 type convGen struct {
-	gf         *protogen.GeneratedFile
-	ogenImport protogen.GoImportPath
-	structs    map[string]*ir.Type
-	tmp        int
+	gf               *protogen.GeneratedFile
+	ogenImport       protogen.GoImportPath
+	structs          map[string]*ir.Type
+	defaultOneofMode ogen.OneofSchemaMode
+	tmp              int
 	// fail is the value returned alongside err on a conversion error. It is
 	// "dst"/"nil" at function scope and the named zero return inside closures.
 	fail string
@@ -110,9 +111,10 @@ func (g *OpenAPIGenerator) generateConverters(file *protogen.File, fileOpts *oge
 
 	ogenImport := protogen.GoImportPath(fileOpts.GetOgenPackage())
 	c := &convGen{
-		gf:         gf,
-		ogenImport: ogenImport,
-		structs:    structs,
+		gf:               gf,
+		ogenImport:       ogenImport,
+		structs:          structs,
+		defaultOneofMode: g.defaultOneofMode,
 	}
 	for _, name := range names {
 		c.genMessage(msgByName[name], structs[name])
@@ -255,7 +257,7 @@ func (c *convGen) genToOgen(msg *protogen.Message, ot *ir.Type, fields map[strin
 		if oneof.Desc.IsSynthetic() {
 			continue
 		}
-		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+		if oneofMode(oneof, c.defaultOneofMode) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
 			c.toOgenOneofObject(oneof, fields)
 			continue
 		}
@@ -292,7 +294,7 @@ func (c *convGen) genFromOgen(msg *protogen.Message, ot *ir.Type, fields map[str
 		if oneof.Desc.IsSynthetic() {
 			continue
 		}
-		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+		if oneofMode(oneof, c.defaultOneofMode) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
 			c.fromOgenOneofObject(oneof, fields)
 			continue
 		}

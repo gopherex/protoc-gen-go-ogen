@@ -191,6 +191,13 @@ Options live in `ogen/ogen.proto`:
 - `ogen.oneof` — `oneOf`/`anyOf`/`object` mode and discriminator. `object` mode
   emits the protojson form (one property per branch + `oneOf`-by-required), the
   correct shape when branches share a JSON type (e.g. `{id|slug}`).
+- `ogen.file.default_oneof_schema_mode` — bundle-wide default mode for oneofs
+  with no `(ogen.oneof)` option, including oneofs from imported/vendored protos
+  (e.g. `schemapb.Field.kind`) that can't be annotated. Set to
+  `ONEOF_SCHEMA_MODE_OBJECT` to make every such oneof protojson form. A per-oneof
+  `schema_mode` still overrides it. The plugin flag
+  `--ogen_opt=default_oneof_schema_mode=object` (`one_of|any_of|object`)
+  overrides the file option for the whole protoc invocation.
 
 Field locations are explicit: `parameters[].field_path` (+ `in:`
 PATH/QUERY/HEADER/COOKIE), `request_body.field_path`, and `responses[].field_path`

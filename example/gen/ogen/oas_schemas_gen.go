@@ -81,6 +81,8 @@ type Coverage struct {
 	Int32Value     OptInt32                   `json:"int32Value"`
 	Int64Value     OptStringInt64             `json:"int64Value"`
 	Int64Wrapper   OptNilStringInt64          `json:"int64Wrapper"`
+	KindCount      OptInt32                   `json:"kindCount"`
+	KindInt        OptInt32                   `json:"kindInt"`
 	ListValue      jx.Raw                     `json:"listValue"`
 	Nested         OptNestedCoverage          `json:"nested"`
 	NestedMap      OptCoverageNestedMap       `json:"nestedMap"`
@@ -190,6 +192,16 @@ func (s *Coverage) GetInt64Value() OptStringInt64 {
 // GetInt64Wrapper returns the value of Int64Wrapper.
 func (s *Coverage) GetInt64Wrapper() OptNilStringInt64 {
 	return s.Int64Wrapper
+}
+
+// GetKindCount returns the value of KindCount.
+func (s *Coverage) GetKindCount() OptInt32 {
+	return s.KindCount
+}
+
+// GetKindInt returns the value of KindInt.
+func (s *Coverage) GetKindInt() OptInt32 {
+	return s.KindInt
 }
 
 // GetListValue returns the value of ListValue.
@@ -395,6 +407,16 @@ func (s *Coverage) SetInt64Value(val OptStringInt64) {
 // SetInt64Wrapper sets the value of Int64Wrapper.
 func (s *Coverage) SetInt64Wrapper(val OptNilStringInt64) {
 	s.Int64Wrapper = val
+}
+
+// SetKindCount sets the value of KindCount.
+func (s *Coverage) SetKindCount(val OptInt32) {
+	s.KindCount = val
+}
+
+// SetKindInt sets the value of KindInt.
+func (s *Coverage) SetKindInt(val OptInt32) {
+	s.KindInt = val
 }
 
 // SetListValue sets the value of ListValue.

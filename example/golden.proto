@@ -45,6 +45,11 @@ option (ogen.file) = {
   openapi_output: "openapi.yaml"
   ogen_target: "ogen"
   ogen_package: "github.com/gopherex/protoc-gen-go-ogen/example/gen/ogen"
+  // Bundle-wide default: every oneof without an explicit (ogen.oneof) schema_mode
+  // renders in protojson/object form. Mirrors the real-world need to handle
+  // oneofs from vendored protos (e.g. schemapb.Field.kind) that share JSON types
+  // and cannot be told apart under the structural oneOf default.
+  default_oneof_schema_mode: ONEOF_SCHEMA_MODE_OBJECT
 };
 
 service UserAPI {
@@ -784,6 +789,16 @@ message CoveragePayload {
     ];
     string ref_slug = 71;
     NestedCoverage ref_nested = 72;
+  }
+
+  // No (ogen.oneof) option: relies on the bundle default_oneof_schema_mode=OBJECT.
+  // Both branches are int32 (identical JSON schema), so the structural oneOf
+  // default would fail with "can't infer fields discriminator". This mirrors the
+  // vendored schemapb.Field.kind union (Float/Double/Int32/Int64/...) that cannot
+  // be patched with options, which is exactly why the bundle default exists.
+  oneof kind {
+    int32 kind_int = 73;
+    int32 kind_count = 74;
   }
 }
 

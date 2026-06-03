@@ -210,6 +210,12 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 		}
 		dst.RefNested.SetTo(*o19)
 	}
+	switch src.GetKind().(type) {
+	case *CoveragePayload_KindInt:
+		dst.KindInt.SetTo(int32(src.GetKindInt()))
+	case *CoveragePayload_KindCount:
+		dst.KindCount.SetTo(int32(src.GetKindCount()))
+	}
 	return &dst, nil
 }
 
@@ -411,6 +417,12 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 			return nil, err
 		}
 		dst.Ref = &CoveragePayload_RefNested{RefNested: m50}
+	}
+	if v51, ok := src.KindInt.Get(); ok {
+		dst.Kind = &CoveragePayload_KindInt{KindInt: int32(v51)}
+	}
+	if v52, ok := src.KindCount.Get(); ok {
+		dst.Kind = &CoveragePayload_KindCount{KindCount: int32(v52)}
 	}
 	return dst, nil
 }

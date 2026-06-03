@@ -19,14 +19,20 @@ components:
             type: object
         CoveragePayload:
             additionalProperties: false
+            allOf:
+                - oneOf:
+                    - required:
+                        - refId
+                    - required:
+                        - refSlug
+                    - required:
+                        - refNested
+                - oneOf:
+                    - required:
+                        - kindInt
+                    - required:
+                        - kindCount
             description: Covers protobuf shapes that must map to OpenAPI and ogen.
-            oneOf:
-                - required:
-                    - refId
-                - required:
-                    - refSlug
-                - required:
-                    - refNested
             properties:
                 anyJsonValue: {}
                 anyValue: {}
@@ -81,6 +87,12 @@ components:
                     format: int64
                     nullable: true
                     type: string
+                kindCount:
+                    format: int32
+                    type: integer
+                kindInt:
+                    format: int32
+                    type: integer
                 listValue: {}
                 nested:
                     $ref: '#/components/schemas/NestedCoverage'

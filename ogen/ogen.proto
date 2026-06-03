@@ -213,6 +213,15 @@ message FileOptions {
   // are now generated into the protoc-gen-go package.
   reserved 33, 35;
 
+  // Default OpenAPI representation for every protobuf oneof in this document's
+  // bundle, including oneofs from imported/vendored protos that carry no
+  // (ogen.oneof) option. A per-oneof schema_mode still overrides this. Unset
+  // means ONE_OF. Set to ONEOF_SCHEMA_MODE_OBJECT to render all oneofs in the
+  // protojson form, which is the only representation that distinguishes branches
+  // sharing a JSON type (the --ogen_opt=default_oneof_schema_mode flag overrides
+  // this per protoc invocation).
+  OneofSchemaMode default_oneof_schema_mode = 36;
+
   // OpenAPI x-* extensions.
   repeated NamedString extensions = 100;
 }

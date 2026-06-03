@@ -955,7 +955,18 @@ type CoveragePayload struct {
 	//	*CoveragePayload_RefId
 	//	*CoveragePayload_RefSlug
 	//	*CoveragePayload_RefNested
-	Ref           isCoveragePayload_Ref `protobuf_oneof:"ref"`
+	Ref isCoveragePayload_Ref `protobuf_oneof:"ref"`
+	// No (ogen.oneof) option: relies on the bundle default_oneof_schema_mode=OBJECT.
+	// Both branches are int32 (identical JSON schema), so the structural oneOf
+	// default would fail with "can't infer fields discriminator". This mirrors the
+	// vendored schemapb.Field.kind union (Float/Double/Int32/Int64/...) that cannot
+	// be patched with options, which is exactly why the bundle default exists.
+	//
+	// Types that are valid to be assigned to Kind:
+	//
+	//	*CoveragePayload_KindInt
+	//	*CoveragePayload_KindCount
+	Kind          isCoveragePayload_Kind `protobuf_oneof:"kind"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1317,6 +1328,31 @@ func (x *CoveragePayload) GetRefNested() *NestedCoverage {
 	return nil
 }
 
+func (x *CoveragePayload) GetKind() isCoveragePayload_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return nil
+}
+
+func (x *CoveragePayload) GetKindInt() int32 {
+	if x != nil {
+		if x, ok := x.Kind.(*CoveragePayload_KindInt); ok {
+			return x.KindInt
+		}
+	}
+	return 0
+}
+
+func (x *CoveragePayload) GetKindCount() int32 {
+	if x != nil {
+		if x, ok := x.Kind.(*CoveragePayload_KindCount); ok {
+			return x.KindCount
+		}
+	}
+	return 0
+}
+
 type isCoveragePayload_Search interface {
 	isCoveragePayload_Search()
 }
@@ -1363,6 +1399,22 @@ func (*CoveragePayload_RefId) isCoveragePayload_Ref() {}
 func (*CoveragePayload_RefSlug) isCoveragePayload_Ref() {}
 
 func (*CoveragePayload_RefNested) isCoveragePayload_Ref() {}
+
+type isCoveragePayload_Kind interface {
+	isCoveragePayload_Kind()
+}
+
+type CoveragePayload_KindInt struct {
+	KindInt int32 `protobuf:"varint,73,opt,name=kind_int,json=kindInt,proto3,oneof"`
+}
+
+type CoveragePayload_KindCount struct {
+	KindCount int32 `protobuf:"varint,74,opt,name=kind_count,json=kindCount,proto3,oneof"`
+}
+
+func (*CoveragePayload_KindInt) isCoveragePayload_Kind() {}
+
+func (*CoveragePayload_KindCount) isCoveragePayload_Kind() {}
 
 // OpenAPI: raw file upload body. Request body content type is image/png and
 // schema is string/binary. Ogen should generate UploadAvatarReq with io.Reader.
@@ -1787,7 +1839,7 @@ const file_golden_proto_rawDesc = "" +
 	"\x14EchoCoverageResponse\x12A\n" +
 	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"4\n" +
 	"\x14WatchCoverageRequest\x12\x1c\n" +
-	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\x85\x14\n" +
+	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\xcb\x14\n" +
 	"\x0fCoveragePayload\x12!\n" +
 	"\fdouble_value\x18\x01 \x01(\x01R\vdoubleValue\x12\x1f\n" +
 	"\vfloat_value\x18\x02 \x01(\x02R\n" +
@@ -1810,8 +1862,8 @@ const file_golden_proto_rawDesc = "" +
 	"\fstring_value\x18\x0e \x01(\tR\vstringValue\x12)\n" +
 	"\vbytes_value\x18\x0f \x01(\fB\b\xf2\xa7\x1d\x04\"\x02P\x01R\n" +
 	"bytesValue\x127\n" +
-	"\x0foptional_string\x18\x14 \x01(\tB\t\xf2\xa7\x1d\x05\"\x03\xa0\x01\x01H\x02R\x0eoptionalString\x88\x01\x01\x12*\n" +
-	"\x0eoptional_int64\x18\x15 \x01(\x03H\x03R\roptionalInt64\x88\x01\x01\x12'\n" +
+	"\x0foptional_string\x18\x14 \x01(\tB\t\xf2\xa7\x1d\x05\"\x03\xa0\x01\x01H\x03R\x0eoptionalString\x88\x01\x01\x12*\n" +
+	"\x0eoptional_int64\x18\x15 \x01(\x03H\x04R\roptionalInt64\x88\x01\x01\x12'\n" +
 	"\x0frepeated_string\x18\x16 \x03(\tR\x0erepeatedString\x12%\n" +
 	"\x0erepeated_int32\x18\x17 \x03(\x05R\rrepeatedInt32\x12]\n" +
 	"\x10string_int64_map\x18\x18 \x03(\v23.example.golden.CoveragePayload.StringInt64MapEntryR\x0estringInt64Map\x12M\n" +
@@ -1842,7 +1894,10 @@ const file_golden_proto_rawDesc = "" +
 	"\x06ref_id\x18F \x01(\tB\b\xf2\xa7\x1d\x04\"\x02P\aH\x01R\x05refId\x12\x1b\n" +
 	"\bref_slug\x18G \x01(\tH\x01R\arefSlug\x12?\n" +
 	"\n" +
-	"ref_nested\x18H \x01(\v2\x1e.example.golden.NestedCoverageH\x01R\trefNested\x1aA\n" +
+	"ref_nested\x18H \x01(\v2\x1e.example.golden.NestedCoverageH\x01R\trefNested\x12\x1b\n" +
+	"\bkind_int\x18I \x01(\x05H\x02R\akindInt\x12\x1f\n" +
+	"\n" +
+	"kind_count\x18J \x01(\x05H\x02R\tkindCount\x1aA\n" +
 	"\x13StringInt64MapEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\x1a\\\n" +
@@ -1852,7 +1907,8 @@ const file_golden_proto_rawDesc = "" +
 	"\vx-ogen-name\x12\n" +
 	"\"Coverage\"B\x10\n" +
 	"\x06search\x12\x06\xf2\xa7\x1d\x02\b\x01B\r\n" +
-	"\x03ref\x12\x06\xf2\xa7\x1d\x02\b\x03B\x12\n" +
+	"\x03ref\x12\x06\xf2\xa7\x1d\x02\b\x03B\x06\n" +
+	"\x04kindB\x12\n" +
 	"\x10_optional_stringB\x11\n" +
 	"\x0f_optional_int64\"5\n" +
 	"\x13UploadAvatarRequest\x12\x1e\n" +
@@ -1929,13 +1985,13 @@ const file_golden_proto_rawDesc = "" +
 	"\vUserChanged\x12 .example.golden.UserChangedEvent\x1a\x16.google.protobuf.Empty\"\xcc\x01\xf2\xa7\x1d\xc7\x01\x10\x02\"\x12userChangedWebhook*\x1bReceive user change webhookJ\r\n" +
 	"\vuserChanged\xa2\x01\t\x10\x01\"\x05event\xaa\x01)\n" +
 	"\vdelivery_id\x10\x03\x1a\x12X-Webhook-Delivery \x012\x02P\a\xb2\x01\x16\b\xcc\x01\x12\x11Webhook accepted.\xb2\x011\x12\x11Unexpected error.*\x1c\n" +
-	"\x1a#/components/schemas/Error\x1a-\xf2\xa7\x1d)\x1a\bwebhooks\"\x1dWebhook callback API surface.B\x9b\x03\xf2\xa7\x1d\xdb\x02\b\x01\x10\x01\x18\x01 \x01Z\x12Golden Example APIb\x051.0.0r+Golden fixture for protoc-gen-ogen options.\x92\x01J\n" +
+	"\x1a#/components/schemas/Error\x1a-\xf2\xa7\x1d)\x1a\bwebhooks\"\x1dWebhook callback API surface.B\x9e\x03\xf2\xa7\x1d\xde\x02\b\x01\x10\x01\x18\x01 \x01Z\x12Golden Example APIb\x051.0.0r+Golden fixture for protoc-gen-ogen options.\x92\x01J\n" +
 	"\x17https://api.example.com\x12\n" +
 	"Production\xa2\x06\"\n" +
 	"\x12x-ogen-server-name\x12\f\"production\"\x9a\x01\x18\n" +
 	"\x05users\x12\x0fUser operations\x9a\x01&\n" +
 	"\bcoverage\x12\x1aSchema coverage operations\x9a\x01'\n" +
-	"\bwebhooks\x12\x1bWebhook callback operations\xf2\x01\fopenapi.yaml\xfa\x01\x04ogen\x82\x027github.com/gopherex/protoc-gen-go-ogen/example/gen/ogenZ9github.com/gopherex/protoc-gen-go-ogen/example/gen;goldenb\x06proto3"
+	"\bwebhooks\x12\x1bWebhook callback operations\xf2\x01\fopenapi.yaml\xfa\x01\x04ogen\x82\x027github.com/gopherex/protoc-gen-go-ogen/example/gen/ogen\xa0\x02\x03Z9github.com/gopherex/protoc-gen-go-ogen/example/gen;goldenb\x06proto3"
 
 var (
 	file_golden_proto_rawDescOnce sync.Once
@@ -2070,6 +2126,8 @@ func file_golden_proto_init() {
 		(*CoveragePayload_RefId)(nil),
 		(*CoveragePayload_RefSlug)(nil),
 		(*CoveragePayload_RefNested)(nil),
+		(*CoveragePayload_KindInt)(nil),
+		(*CoveragePayload_KindCount)(nil),
 	}
 	file_golden_proto_msgTypes[18].OneofWrappers = []any{}
 	type x struct{}

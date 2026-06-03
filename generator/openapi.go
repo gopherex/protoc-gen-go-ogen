@@ -20,7 +20,10 @@ type OpenAPIGenerator struct {
 	Settings      *PluginSettings
 	componentName map[protoreflect.FullName]string
 	oasVersion    string
-	errs          []error
+	// defaultOneofMode is the bundle-wide oneof representation applied to oneofs
+	// without an explicit (ogen.oneof) schema_mode.
+	defaultOneofMode ogen.OneofSchemaMode
+	errs             []error
 }
 
 type openAPIBundle struct {
@@ -109,6 +112,11 @@ func (g *OpenAPIGenerator) validateBundle(bundle *openAPIBundle) {
 func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 	g.componentName = map[protoreflect.FullName]string{}
 	g.errs = nil
+	mode, err := g.bundleOneofDefault(bundle.rootOpts)
+	if err != nil {
+		return err
+	}
+	g.defaultOneofMode = mode
 	g.validateBundle(bundle)
 	messages := g.bundleMessages(bundle.files)
 	g.collectComponentNames(messages)
@@ -702,7 +710,7 @@ func (g *OpenAPIGenerator) objectSchema(msg *protogen.Message) map[string]any {
 		if oneof.Desc.IsSynthetic() {
 			continue
 		}
-		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+		if oneofMode(oneof, g.defaultOneofMode) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
 			// protojson form: each branch is its own (optional) object property,
 			// with a oneOf-by-required constraint enforcing exactly one branch.
 			var branchReqs []any
@@ -860,15 +868,49 @@ func getFieldOptions(field *protogen.Field) *ogen.FieldOptions {
 	return nil
 }
 
-// oneofMode returns the effective OpenAPI representation for a oneof, defaulting
-// to ONE_OF when unset.
-func oneofMode(oneof *protogen.Oneof) ogen.OneofSchemaMode {
+// oneofMode returns the effective OpenAPI representation for a oneof. A per-oneof
+// schema_mode wins; otherwise the bundle default applies; otherwise ONE_OF.
+func oneofMode(oneof *protogen.Oneof, dflt ogen.OneofSchemaMode) ogen.OneofSchemaMode {
 	if opts := getOneofOptions(oneof); opts != nil {
 		if m := opts.GetSchemaMode(); m != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED {
 			return m
 		}
 	}
+	if dflt != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED {
+		return dflt
+	}
 	return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF
+}
+
+// parseOneofSchemaMode maps the --ogen_opt=default_oneof_schema_mode flag value
+// to its enum. An empty string yields UNSPECIFIED (defer to file option).
+func parseOneofSchemaMode(s string) (ogen.OneofSchemaMode, error) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "", "unspecified":
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED, nil
+	case "one_of", "oneof":
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF, nil
+	case "any_of", "anyof":
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ANY_OF, nil
+	case "object":
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT, nil
+	default:
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED,
+			fmt.Errorf("invalid default_oneof_schema_mode %q (want one_of|any_of|object)", s)
+	}
+}
+
+// bundleOneofDefault resolves the effective bundle-wide oneof default: the plugin
+// flag overrides the document's default_oneof_schema_mode file option.
+func (g *OpenAPIGenerator) bundleOneofDefault(rootOpts *ogen.FileOptions) (ogen.OneofSchemaMode, error) {
+	flagMode, err := parseOneofSchemaMode(g.Settings.DefaultOneofSchemaMode)
+	if err != nil {
+		return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED, err
+	}
+	if flagMode != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED {
+		return flagMode, nil
+	}
+	return rootOpts.GetDefaultOneofSchemaMode(), nil
 }
 
 // objectOneofMarker holds OBJECT-mode oneOf-by-required constraints on a schema

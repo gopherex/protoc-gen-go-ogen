@@ -98,6 +98,74 @@ func TestCheckUniqueOperationIDs(t *testing.T) {
 	})
 }
 
+func TestParseOneofSchemaMode(t *testing.T) {
+	cases := map[string]ogen.OneofSchemaMode{
+		"":       ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED,
+		"one_of": ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF,
+		"oneof":  ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF,
+		"any_of": ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ANY_OF,
+		"OBJECT": ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT,
+	}
+	for in, want := range cases {
+		got, err := parseOneofSchemaMode(in)
+		if err != nil {
+			t.Fatalf("parse %q: %v", in, err)
+		}
+		if got != want {
+			t.Fatalf("parse %q = %v, want %v", in, got, want)
+		}
+	}
+	if _, err := parseOneofSchemaMode("bogus"); err == nil {
+		t.Fatal("want error for bogus mode")
+	}
+}
+
+func TestBundleOneofDefault(t *testing.T) {
+	t.Run("flag overrides file option", func(t *testing.T) {
+		g := &OpenAPIGenerator{Settings: &PluginSettings{DefaultOneofSchemaMode: "one_of"}}
+		got, err := g.bundleOneofDefault(&ogen.FileOptions{
+			DefaultOneofSchemaMode: ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF {
+			t.Fatalf("flag must win, got %v", got)
+		}
+	})
+
+	t.Run("file option used when no flag", func(t *testing.T) {
+		g := &OpenAPIGenerator{Settings: &PluginSettings{}}
+		got, err := g.bundleOneofDefault(&ogen.FileOptions{
+			DefaultOneofSchemaMode: ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+			t.Fatalf("want file option OBJECT, got %v", got)
+		}
+	})
+
+	t.Run("unset is UNSPECIFIED", func(t *testing.T) {
+		g := &OpenAPIGenerator{Settings: &PluginSettings{}}
+		got, err := g.bundleOneofDefault(&ogen.FileOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED {
+			t.Fatalf("want UNSPECIFIED, got %v", got)
+		}
+	})
+
+	t.Run("invalid flag errors", func(t *testing.T) {
+		g := &OpenAPIGenerator{Settings: &PluginSettings{DefaultOneofSchemaMode: "nope"}}
+		if _, err := g.bundleOneofDefault(&ogen.FileOptions{}); err == nil {
+			t.Fatal("want error")
+		}
+	})
+}
+
 func TestApplyObjectOneofGroups(t *testing.T) {
 	t.Run("single oneof stores oneOf marker", func(t *testing.T) {
 		schema := map[string]any{}

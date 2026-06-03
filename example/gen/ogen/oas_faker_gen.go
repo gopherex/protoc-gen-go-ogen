@@ -123,6 +123,16 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
+			s.KindCount.SetFake()
+		}
+	}
+	{
+		{
+			s.KindInt.SetFake()
+		}
+	}
+	{
+		{
 			s.ListValue = []byte("null")
 		}
 	}

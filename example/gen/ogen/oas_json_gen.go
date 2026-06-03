@@ -271,6 +271,18 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.KindCount.Set {
+			e.FieldStart("kindCount")
+			s.KindCount.Encode(e)
+		}
+	}
+	{
+		if s.KindInt.Set {
+			e.FieldStart("kindInt")
+			s.KindInt.Encode(e)
+		}
+	}
+	{
 		if len(s.ListValue) != 0 {
 			e.FieldStart("listValue")
 			e.Raw(s.ListValue)
@@ -428,7 +440,7 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCoverage = [41]string{
+var jsonFieldsNameOfCoverage = [43]string{
 	0:  "anyJsonValue",
 	1:  "anyValue",
 	2:  "boolValue",
@@ -446,30 +458,32 @@ var jsonFieldsNameOfCoverage = [41]string{
 	14: "int32Value",
 	15: "int64Value",
 	16: "int64Wrapper",
-	17: "listValue",
-	18: "nested",
-	19: "nestedMap",
-	20: "optionalInt64",
-	21: "optionalString",
-	22: "refId",
-	23: "refNested",
-	24: "refSlug",
-	25: "repeatedEnum",
-	26: "repeatedInt32",
-	27: "repeatedString",
-	28: "search",
-	29: "sfixed32Value",
-	30: "sfixed64Value",
-	31: "sint32Value",
-	32: "sint64Value",
-	33: "stringInt64Map",
-	34: "stringValue",
-	35: "stringWrapper",
-	36: "structValue",
-	37: "timestampValue",
-	38: "uint32Value",
-	39: "uint64Value",
-	40: "uint64Wrapper",
+	17: "kindCount",
+	18: "kindInt",
+	19: "listValue",
+	20: "nested",
+	21: "nestedMap",
+	22: "optionalInt64",
+	23: "optionalString",
+	24: "refId",
+	25: "refNested",
+	26: "refSlug",
+	27: "repeatedEnum",
+	28: "repeatedInt32",
+	29: "repeatedString",
+	30: "search",
+	31: "sfixed32Value",
+	32: "sfixed64Value",
+	33: "sint32Value",
+	34: "sint64Value",
+	35: "stringInt64Map",
+	36: "stringValue",
+	37: "stringWrapper",
+	38: "structValue",
+	39: "timestampValue",
+	40: "uint32Value",
+	41: "uint64Value",
+	42: "uint64Wrapper",
 }
 
 // Decode decodes Coverage from json.
@@ -652,6 +666,26 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"int64Wrapper\"")
+			}
+		case "kindCount":
+			if err := func() error {
+				s.KindCount.Reset()
+				if err := s.KindCount.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kindCount\"")
+			}
+		case "kindInt":
+			if err := func() error {
+				s.KindInt.Reset()
+				if err := s.KindInt.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"kindInt\"")
 			}
 		case "listValue":
 			if err := func() error {

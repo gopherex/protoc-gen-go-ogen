@@ -261,9 +261,18 @@ type OneofSchemaMode int32
 
 const (
 	OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED OneofSchemaMode = 0
-	OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF      OneofSchemaMode = 1
-	OneofSchemaMode_ONEOF_SCHEMA_MODE_ANY_OF      OneofSchemaMode = 2
-	OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT      OneofSchemaMode = 3
+	// oneOf of the branch schemas (default). Branches are told apart structurally,
+	// so branches that share a JSON type (two strings, two enums, the same message)
+	// are indistinguishable — use OBJECT mode for those.
+	OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF OneofSchemaMode = 1
+	// anyOf of the branch schemas.
+	OneofSchemaMode_ONEOF_SCHEMA_MODE_ANY_OF OneofSchemaMode = 2
+	// protojson form: each branch becomes its own optional property on the parent
+	// object, plus a oneOf-by-required constraint enforcing exactly one branch
+	// (oneOf: [{required: [branchA]}, {required: [branchB]}]). Branches are told
+	// apart by property name, so same-typed branches work. This is the correct
+	// shape for unions like {id|slug} or {mysql|mariadb}.
+	OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT OneofSchemaMode = 3
 )
 
 // Enum value maps for OneofSchemaMode.
@@ -938,6 +947,14 @@ type FileOptions struct {
 	// Short Go package name for generated ogen code (the ogen --package flag).
 	// Empty means use the last path segment of ogen_package, then ogen_target.
 	OgenPackageName string `protobuf:"bytes,34,opt,name=ogen_package_name,json=ogenPackageName,proto3" json:"ogen_package_name,omitempty"`
+	// Default OpenAPI representation for every protobuf oneof in this document's
+	// bundle, including oneofs from imported/vendored protos that carry no
+	// (ogen.oneof) option. A per-oneof schema_mode still overrides this. Unset
+	// means ONE_OF. Set to ONEOF_SCHEMA_MODE_OBJECT to render all oneofs in the
+	// protojson form, which is the only representation that distinguishes branches
+	// sharing a JSON type (the --ogen_opt=default_oneof_schema_mode flag overrides
+	// this per protoc invocation).
+	DefaultOneofSchemaMode OneofSchemaMode `protobuf:"varint,36,opt,name=default_oneof_schema_mode,json=defaultOneofSchemaMode,proto3,enum=ogen.OneofSchemaMode" json:"default_oneof_schema_mode,omitempty"`
 	// OpenAPI x-* extensions.
 	Extensions    []*NamedString `protobuf:"bytes,100,rep,name=extensions,proto3" json:"extensions,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1105,6 +1122,13 @@ func (x *FileOptions) GetOgenPackageName() string {
 		return x.OgenPackageName
 	}
 	return ""
+}
+
+func (x *FileOptions) GetDefaultOneofSchemaMode() OneofSchemaMode {
+	if x != nil {
+		return x.DefaultOneofSchemaMode
+	}
+	return OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED
 }
 
 func (x *FileOptions) GetExtensions() []*NamedString {
@@ -2186,7 +2210,7 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\t_nullableB\f\n" +
 	"\n" +
 	"_read_onlyB\r\n" +
-	"\v_write_only\"\xa9\x06\n" +
+	"\v_write_only\"\xfb\x06\n" +
 	"\vFileOptions\x12)\n" +
 	"\x10generate_openapi\x18\x01 \x01(\bR\x0fgenerateOpenapi\x12#\n" +
 	"\rgenerate_ogen\x18\x02 \x01(\bR\fgenerateOgen\x12/\n" +
@@ -2208,7 +2232,8 @@ const file_ogen_ogen_proto_rawDesc = "" +
 	"\vogen_target\x18\x1f \x01(\tR\n" +
 	"ogenTarget\x12!\n" +
 	"\fogen_package\x18  \x01(\tR\vogenPackage\x12*\n" +
-	"\x11ogen_package_name\x18\" \x01(\tR\x0fogenPackageName\x121\n" +
+	"\x11ogen_package_name\x18\" \x01(\tR\x0fogenPackageName\x12P\n" +
+	"\x19default_oneof_schema_mode\x18$ \x01(\x0e2\x15.ogen.OneofSchemaModeR\x16defaultOneofSchemaMode\x121\n" +
 	"\n" +
 	"extensions\x18d \x03(\v2\x11.ogen.NamedStringR\n" +
 	"extensionsJ\x04\b!\x10\"J\x04\b#\x10$\"\x88\x04\n" +
@@ -2421,52 +2446,53 @@ var file_ogen_ogen_proto_depIdxs = []int32{
 	5,  // 6: ogen.FileOptions.servers:type_name -> ogen.Server
 	9,  // 7: ogen.FileOptions.tags:type_name -> ogen.Tag
 	6,  // 8: ogen.FileOptions.external_docs:type_name -> ogen.ExternalDocs
-	4,  // 9: ogen.FileOptions.extensions:type_name -> ogen.NamedString
-	12, // 10: ogen.MessageOptions.schema:type_name -> ogen.SchemaOptions
-	10, // 11: ogen.MessageOptions.override_ogen_type:type_name -> ogen.GoIdent
-	11, // 12: ogen.MessageOptions.additional_properties_schema:type_name -> ogen.SchemaRef
-	4,  // 13: ogen.MessageOptions.discriminator_mapping:type_name -> ogen.NamedString
-	4,  // 14: ogen.MessageOptions.extensions:type_name -> ogen.NamedString
-	12, // 15: ogen.FieldOptions.schema:type_name -> ogen.SchemaOptions
-	10, // 16: ogen.FieldOptions.override_ogen_type:type_name -> ogen.GoIdent
-	4,  // 17: ogen.FieldOptions.extensions:type_name -> ogen.NamedString
-	3,  // 18: ogen.OneofOptions.schema_mode:type_name -> ogen.OneofSchemaMode
-	4,  // 19: ogen.OneofOptions.discriminator_mapping:type_name -> ogen.NamedString
-	12, // 20: ogen.OneofOptions.schema:type_name -> ogen.SchemaOptions
-	5,  // 21: ogen.ServiceOptions.servers:type_name -> ogen.Server
-	4,  // 22: ogen.ServiceOptions.extensions:type_name -> ogen.NamedString
-	4,  // 23: ogen.RequestBody.media_extensions:type_name -> ogen.NamedString
-	4,  // 24: ogen.RequestBody.extensions:type_name -> ogen.NamedString
-	11, // 25: ogen.Response.schema:type_name -> ogen.SchemaRef
-	4,  // 26: ogen.Response.headers:type_name -> ogen.NamedString
-	1,  // 27: ogen.ParameterBinding.in:type_name -> ogen.ParameterLocation
-	12, // 28: ogen.ParameterBinding.schema:type_name -> ogen.SchemaOptions
-	0,  // 29: ogen.MethodOptions.http_method:type_name -> ogen.HttpMethod
-	21, // 30: ogen.MethodOptions.webhook:type_name -> ogen.WebhookOptions
-	18, // 31: ogen.MethodOptions.request_body:type_name -> ogen.RequestBody
-	20, // 32: ogen.MethodOptions.parameters:type_name -> ogen.ParameterBinding
-	19, // 33: ogen.MethodOptions.responses:type_name -> ogen.Response
-	5,  // 34: ogen.MethodOptions.servers:type_name -> ogen.Server
-	4,  // 35: ogen.MethodOptions.extensions:type_name -> ogen.NamedString
-	23, // 36: ogen.file:extendee -> google.protobuf.FileOptions
-	24, // 37: ogen.enum:extendee -> google.protobuf.EnumOptions
-	25, // 38: ogen.message:extendee -> google.protobuf.MessageOptions
-	26, // 39: ogen.field:extendee -> google.protobuf.FieldOptions
-	27, // 40: ogen.oneof:extendee -> google.protobuf.OneofOptions
-	28, // 41: ogen.service:extendee -> google.protobuf.ServiceOptions
-	29, // 42: ogen.method:extendee -> google.protobuf.MethodOptions
-	13, // 43: ogen.file:type_name -> ogen.FileOptions
-	12, // 44: ogen.enum:type_name -> ogen.SchemaOptions
-	14, // 45: ogen.message:type_name -> ogen.MessageOptions
-	15, // 46: ogen.field:type_name -> ogen.FieldOptions
-	16, // 47: ogen.oneof:type_name -> ogen.OneofOptions
-	17, // 48: ogen.service:type_name -> ogen.ServiceOptions
-	22, // 49: ogen.method:type_name -> ogen.MethodOptions
-	50, // [50:50] is the sub-list for method output_type
-	50, // [50:50] is the sub-list for method input_type
-	43, // [43:50] is the sub-list for extension type_name
-	36, // [36:43] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	3,  // 9: ogen.FileOptions.default_oneof_schema_mode:type_name -> ogen.OneofSchemaMode
+	4,  // 10: ogen.FileOptions.extensions:type_name -> ogen.NamedString
+	12, // 11: ogen.MessageOptions.schema:type_name -> ogen.SchemaOptions
+	10, // 12: ogen.MessageOptions.override_ogen_type:type_name -> ogen.GoIdent
+	11, // 13: ogen.MessageOptions.additional_properties_schema:type_name -> ogen.SchemaRef
+	4,  // 14: ogen.MessageOptions.discriminator_mapping:type_name -> ogen.NamedString
+	4,  // 15: ogen.MessageOptions.extensions:type_name -> ogen.NamedString
+	12, // 16: ogen.FieldOptions.schema:type_name -> ogen.SchemaOptions
+	10, // 17: ogen.FieldOptions.override_ogen_type:type_name -> ogen.GoIdent
+	4,  // 18: ogen.FieldOptions.extensions:type_name -> ogen.NamedString
+	3,  // 19: ogen.OneofOptions.schema_mode:type_name -> ogen.OneofSchemaMode
+	4,  // 20: ogen.OneofOptions.discriminator_mapping:type_name -> ogen.NamedString
+	12, // 21: ogen.OneofOptions.schema:type_name -> ogen.SchemaOptions
+	5,  // 22: ogen.ServiceOptions.servers:type_name -> ogen.Server
+	4,  // 23: ogen.ServiceOptions.extensions:type_name -> ogen.NamedString
+	4,  // 24: ogen.RequestBody.media_extensions:type_name -> ogen.NamedString
+	4,  // 25: ogen.RequestBody.extensions:type_name -> ogen.NamedString
+	11, // 26: ogen.Response.schema:type_name -> ogen.SchemaRef
+	4,  // 27: ogen.Response.headers:type_name -> ogen.NamedString
+	1,  // 28: ogen.ParameterBinding.in:type_name -> ogen.ParameterLocation
+	12, // 29: ogen.ParameterBinding.schema:type_name -> ogen.SchemaOptions
+	0,  // 30: ogen.MethodOptions.http_method:type_name -> ogen.HttpMethod
+	21, // 31: ogen.MethodOptions.webhook:type_name -> ogen.WebhookOptions
+	18, // 32: ogen.MethodOptions.request_body:type_name -> ogen.RequestBody
+	20, // 33: ogen.MethodOptions.parameters:type_name -> ogen.ParameterBinding
+	19, // 34: ogen.MethodOptions.responses:type_name -> ogen.Response
+	5,  // 35: ogen.MethodOptions.servers:type_name -> ogen.Server
+	4,  // 36: ogen.MethodOptions.extensions:type_name -> ogen.NamedString
+	23, // 37: ogen.file:extendee -> google.protobuf.FileOptions
+	24, // 38: ogen.enum:extendee -> google.protobuf.EnumOptions
+	25, // 39: ogen.message:extendee -> google.protobuf.MessageOptions
+	26, // 40: ogen.field:extendee -> google.protobuf.FieldOptions
+	27, // 41: ogen.oneof:extendee -> google.protobuf.OneofOptions
+	28, // 42: ogen.service:extendee -> google.protobuf.ServiceOptions
+	29, // 43: ogen.method:extendee -> google.protobuf.MethodOptions
+	13, // 44: ogen.file:type_name -> ogen.FileOptions
+	12, // 45: ogen.enum:type_name -> ogen.SchemaOptions
+	14, // 46: ogen.message:type_name -> ogen.MessageOptions
+	15, // 47: ogen.field:type_name -> ogen.FieldOptions
+	16, // 48: ogen.oneof:type_name -> ogen.OneofOptions
+	17, // 49: ogen.service:type_name -> ogen.ServiceOptions
+	22, // 50: ogen.method:type_name -> ogen.MethodOptions
+	51, // [51:51] is the sub-list for method output_type
+	51, // [51:51] is the sub-list for method input_type
+	44, // [44:51] is the sub-list for extension type_name
+	37, // [37:44] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_ogen_ogen_proto_init() }
