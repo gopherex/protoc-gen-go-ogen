@@ -761,6 +761,30 @@ message CoveragePayload {
     int32 search_id = 61;
     NestedCoverage search_nested = 62;
   }
+
+  // OpenAPI: OBJECT-mode oneof (protojson form). Each branch becomes its own
+  // optional object property, plus a oneOf-by-required constraint enforcing
+  // exactly one branch. This is the only correct shape when branches share a
+  // JSON type: ref_id and ref_slug are both strings, which ONE_OF mode would
+  // emit as two indistinguishable string variants. Field options on a branch
+  // apply too: ref_id carries a UUID string format.
+  // Converters: ToOgen sets exactly one branch property; FromOgen reads whichever
+  // branch property is present and rebuilds the protobuf oneof wrapper.
+  oneof ref {
+    option (ogen.oneof) = {
+      schema_mode: ONEOF_SCHEMA_MODE_OBJECT
+    };
+
+    string ref_id = 70 [
+      (ogen.field) = {
+        schema: {
+          string_format: STRING_FORMAT_UUID
+        }
+      }
+    ];
+    string ref_slug = 71;
+    NestedCoverage ref_nested = 72;
+  }
 }
 
 // OpenAPI: raw file upload body. Request body content type is image/png and

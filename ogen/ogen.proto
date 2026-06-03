@@ -62,8 +62,17 @@ enum StringFormat {
 // that expose tagged unions explicitly.
 enum OneofSchemaMode {
   ONEOF_SCHEMA_MODE_UNSPECIFIED = 0;
+  // oneOf of the branch schemas (default). Branches are told apart structurally,
+  // so branches that share a JSON type (two strings, two enums, the same message)
+  // are indistinguishable — use OBJECT mode for those.
   ONEOF_SCHEMA_MODE_ONE_OF = 1;
+  // anyOf of the branch schemas.
   ONEOF_SCHEMA_MODE_ANY_OF = 2;
+  // protojson form: each branch becomes its own optional property on the parent
+  // object, plus a oneOf-by-required constraint enforcing exactly one branch
+  // (oneOf: [{required: [branchA]}, {required: [branchB]}]). Branches are told
+  // apart by property name, so same-typed branches work. This is the correct
+  // shape for unions like {id|slug} or {mysql|mariadb}.
   ONEOF_SCHEMA_MODE_OBJECT = 3;
 }
 

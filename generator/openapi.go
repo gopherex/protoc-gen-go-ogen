@@ -165,9 +165,26 @@ func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 		}
 	}
 
+	// The document fed to ogen must not carry OBJECT-mode oneof markers (ogen
+	// would build a sum type from a top-level oneOf). Expand them into a real
+	// oneOf/allOf for the public output, and strip them for ogen.
+	var ogenDoc map[string]any
+	if containsObjectOneof(doc) {
+		ogenDoc = deepCopyNode(doc).(map[string]any)
+		finalizeObjectOneof(ogenDoc, false)
+		finalizeObjectOneof(doc, true)
+	}
+
 	data, err := yaml.Marshal(doc)
 	if err != nil {
 		return fmt.Errorf("marshal openapi yaml: %w", err)
+	}
+	ogenData := data
+	if ogenDoc != nil {
+		ogenData, err = yaml.Marshal(ogenDoc)
+		if err != nil {
+			return fmt.Errorf("marshal ogen openapi yaml: %w", err)
+		}
 	}
 
 	yamlName := openapiFileName(bundle.root, bundle.rootOpts)
@@ -187,7 +204,7 @@ func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 	}
 
 	if bundle.rootOpts.GetGenerateOgen() {
-		if err := g.generateOgen(bundle.files, bundle.rootOpts, data); err != nil {
+		if err := g.generateOgen(bundle.files, bundle.rootOpts, ogenData); err != nil {
 			return err
 		}
 	}
@@ -680,16 +697,38 @@ func (g *OpenAPIGenerator) objectSchema(msg *protogen.Message) map[string]any {
 			required = append(required, name)
 		}
 	}
-	if len(ogenProperties) > 0 {
-		schema["x-ogen-properties"] = ogenProperties
-	}
+	var objectOneofGroups [][]any
 	for _, oneof := range msg.Oneofs {
 		if oneof.Desc.IsSynthetic() {
+			continue
+		}
+		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+			// protojson form: each branch is its own (optional) object property,
+			// with a oneOf-by-required constraint enforcing exactly one branch.
+			var branchReqs []any
+			for _, field := range oneof.Fields {
+				if fieldOmitted(field) {
+					continue
+				}
+				bname := fieldOpenAPIName(field)
+				properties[bname] = g.schemaForField(field)
+				if opts := getFieldOptions(field); opts != nil && opts.GetGoName() != "" {
+					ogenProperties[bname] = map[string]any{"name": opts.GetGoName()}
+				}
+				branchReqs = append(branchReqs, map[string]any{"required": []any{bname}})
+			}
+			if len(branchReqs) > 0 {
+				objectOneofGroups = append(objectOneofGroups, branchReqs)
+			}
 			continue
 		}
 		name := string(oneof.Desc.Name())
 		properties[name] = g.schemaForOneof(oneof)
 	}
+	if len(ogenProperties) > 0 {
+		schema["x-ogen-properties"] = ogenProperties
+	}
+	applyObjectOneofGroups(schema, objectOneofGroups)
 	if len(required) > 0 {
 		sort.Strings(required)
 		schema["required"] = required
@@ -770,7 +809,7 @@ func (g *OpenAPIGenerator) schemaForMessage(msg *protogen.Message) map[string]an
 func (g *OpenAPIGenerator) schemaForOneof(oneof *protogen.Oneof) map[string]any {
 	var variants []any
 	for _, field := range oneof.Fields {
-		variants = append(variants, g.schemaForSingularField(field))
+		variants = append(variants, g.schemaForField(field))
 	}
 	schema := map[string]any{"oneOf": variants}
 	if opts := getOneofOptions(oneof); opts != nil {
@@ -819,6 +858,112 @@ func getFieldOptions(field *protogen.Field) *ogen.FieldOptions {
 		}
 	}
 	return nil
+}
+
+// oneofMode returns the effective OpenAPI representation for a oneof, defaulting
+// to ONE_OF when unset.
+func oneofMode(oneof *protogen.Oneof) ogen.OneofSchemaMode {
+	if opts := getOneofOptions(oneof); opts != nil {
+		if m := opts.GetSchemaMode(); m != ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_UNSPECIFIED {
+			return m
+		}
+	}
+	return ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_ONE_OF
+}
+
+// objectOneofMarker holds OBJECT-mode oneOf-by-required constraints on a schema
+// until the document is serialized. ogen cannot model an object that also carries
+// a top-level oneOf (it builds a sum type and the required-only variants collide),
+// so the constraint is stripped from the document fed to ogen and expanded into a
+// real oneOf/allOf only in the public OpenAPI output. See finalizeObjectOneof.
+const objectOneofMarker = "x-ogen-object-oneof"
+
+// applyObjectOneofGroups records OBJECT-mode oneOf-by-required constraints on an
+// object schema. A single oneof becomes a oneOf; multiple oneofs are combined
+// under allOf so each is independently constrained.
+func applyObjectOneofGroups(schema map[string]any, groups [][]any) {
+	switch len(groups) {
+	case 0:
+		return
+	case 1:
+		schema[objectOneofMarker] = map[string]any{"oneOf": groups[0]}
+	default:
+		allOf := make([]any, 0, len(groups))
+		for _, g := range groups {
+			allOf = append(allOf, map[string]any{"oneOf": g})
+		}
+		schema[objectOneofMarker] = map[string]any{"allOf": allOf}
+	}
+}
+
+// containsObjectOneof reports whether any schema in the document carries an
+// OBJECT-mode oneof marker.
+func containsObjectOneof(node any) bool {
+	switch n := node.(type) {
+	case map[string]any:
+		if _, ok := n[objectOneofMarker]; ok {
+			return true
+		}
+		for _, v := range n {
+			if containsObjectOneof(v) {
+				return true
+			}
+		}
+	case []any:
+		for _, v := range n {
+			if containsObjectOneof(v) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// finalizeObjectOneof rewrites OBJECT-mode oneof markers throughout the document.
+// When expand is true the marker is merged into its schema as a real oneOf/allOf
+// (public output); otherwise it is dropped (the document fed to ogen).
+func finalizeObjectOneof(node any, expand bool) {
+	switch n := node.(type) {
+	case map[string]any:
+		if m, ok := n[objectOneofMarker]; ok {
+			delete(n, objectOneofMarker)
+			if expand {
+				if constraint, ok := m.(map[string]any); ok {
+					for k, v := range constraint {
+						n[k] = v
+					}
+				}
+			}
+		}
+		for _, v := range n {
+			finalizeObjectOneof(v, expand)
+		}
+	case []any:
+		for _, v := range n {
+			finalizeObjectOneof(v, expand)
+		}
+	}
+}
+
+// deepCopyNode clones a decoded YAML/JSON node so the public and ogen documents
+// can be finalized independently.
+func deepCopyNode(n any) any {
+	switch v := n.(type) {
+	case map[string]any:
+		m := make(map[string]any, len(v))
+		for k, val := range v {
+			m[k] = deepCopyNode(val)
+		}
+		return m
+	case []any:
+		s := make([]any, len(v))
+		for i, val := range v {
+			s[i] = deepCopyNode(val)
+		}
+		return s
+	default:
+		return v
+	}
 }
 
 func getOneofOptions(oneof *protogen.Oneof) *ogen.OneofOptions {

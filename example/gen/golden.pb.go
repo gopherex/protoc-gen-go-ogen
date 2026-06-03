@@ -940,7 +940,22 @@ type CoveragePayload struct {
 	//	*CoveragePayload_SearchText
 	//	*CoveragePayload_SearchId
 	//	*CoveragePayload_SearchNested
-	Search        isCoveragePayload_Search `protobuf_oneof:"search"`
+	Search isCoveragePayload_Search `protobuf_oneof:"search"`
+	// OpenAPI: OBJECT-mode oneof (protojson form). Each branch becomes its own
+	// optional object property, plus a oneOf-by-required constraint enforcing
+	// exactly one branch. This is the only correct shape when branches share a
+	// JSON type: ref_id and ref_slug are both strings, which ONE_OF mode would
+	// emit as two indistinguishable string variants. Field options on a branch
+	// apply too: ref_id carries a UUID string format.
+	// Converters: ToOgen sets exactly one branch property; FromOgen reads whichever
+	// branch property is present and rebuilds the protobuf oneof wrapper.
+	//
+	// Types that are valid to be assigned to Ref:
+	//
+	//	*CoveragePayload_RefId
+	//	*CoveragePayload_RefSlug
+	//	*CoveragePayload_RefNested
+	Ref           isCoveragePayload_Ref `protobuf_oneof:"ref"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1268,6 +1283,40 @@ func (x *CoveragePayload) GetSearchNested() *NestedCoverage {
 	return nil
 }
 
+func (x *CoveragePayload) GetRef() isCoveragePayload_Ref {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
+func (x *CoveragePayload) GetRefId() string {
+	if x != nil {
+		if x, ok := x.Ref.(*CoveragePayload_RefId); ok {
+			return x.RefId
+		}
+	}
+	return ""
+}
+
+func (x *CoveragePayload) GetRefSlug() string {
+	if x != nil {
+		if x, ok := x.Ref.(*CoveragePayload_RefSlug); ok {
+			return x.RefSlug
+		}
+	}
+	return ""
+}
+
+func (x *CoveragePayload) GetRefNested() *NestedCoverage {
+	if x != nil {
+		if x, ok := x.Ref.(*CoveragePayload_RefNested); ok {
+			return x.RefNested
+		}
+	}
+	return nil
+}
+
 type isCoveragePayload_Search interface {
 	isCoveragePayload_Search()
 }
@@ -1292,6 +1341,28 @@ func (*CoveragePayload_SearchText) isCoveragePayload_Search() {}
 func (*CoveragePayload_SearchId) isCoveragePayload_Search() {}
 
 func (*CoveragePayload_SearchNested) isCoveragePayload_Search() {}
+
+type isCoveragePayload_Ref interface {
+	isCoveragePayload_Ref()
+}
+
+type CoveragePayload_RefId struct {
+	RefId string `protobuf:"bytes,70,opt,name=ref_id,json=refId,proto3,oneof"`
+}
+
+type CoveragePayload_RefSlug struct {
+	RefSlug string `protobuf:"bytes,71,opt,name=ref_slug,json=refSlug,proto3,oneof"`
+}
+
+type CoveragePayload_RefNested struct {
+	RefNested *NestedCoverage `protobuf:"bytes,72,opt,name=ref_nested,json=refNested,proto3,oneof"`
+}
+
+func (*CoveragePayload_RefId) isCoveragePayload_Ref() {}
+
+func (*CoveragePayload_RefSlug) isCoveragePayload_Ref() {}
+
+func (*CoveragePayload_RefNested) isCoveragePayload_Ref() {}
 
 // OpenAPI: raw file upload body. Request body content type is image/png and
 // schema is string/binary. Ogen should generate UploadAvatarReq with io.Reader.
@@ -1716,7 +1787,7 @@ const file_golden_proto_rawDesc = "" +
 	"\x14EchoCoverageResponse\x12A\n" +
 	"\apayload\x18\x01 \x01(\v2\x1f.example.golden.CoveragePayloadB\x06\xf2\xa7\x1d\x02\x10\x01R\apayload\"4\n" +
 	"\x14WatchCoverageRequest\x12\x1c\n" +
-	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\xf5\x12\n" +
+	"\x05topic\x18\x01 \x01(\tB\x06\xf2\xa7\x1d\x02\x10\x01R\x05topic\"\x85\x14\n" +
 	"\x0fCoveragePayload\x12!\n" +
 	"\fdouble_value\x18\x01 \x01(\x01R\vdoubleValue\x12\x1f\n" +
 	"\vfloat_value\x18\x02 \x01(\x02R\n" +
@@ -1739,8 +1810,8 @@ const file_golden_proto_rawDesc = "" +
 	"\fstring_value\x18\x0e \x01(\tR\vstringValue\x12)\n" +
 	"\vbytes_value\x18\x0f \x01(\fB\b\xf2\xa7\x1d\x04\"\x02P\x01R\n" +
 	"bytesValue\x127\n" +
-	"\x0foptional_string\x18\x14 \x01(\tB\t\xf2\xa7\x1d\x05\"\x03\xa0\x01\x01H\x01R\x0eoptionalString\x88\x01\x01\x12*\n" +
-	"\x0eoptional_int64\x18\x15 \x01(\x03H\x02R\roptionalInt64\x88\x01\x01\x12'\n" +
+	"\x0foptional_string\x18\x14 \x01(\tB\t\xf2\xa7\x1d\x05\"\x03\xa0\x01\x01H\x02R\x0eoptionalString\x88\x01\x01\x12*\n" +
+	"\x0eoptional_int64\x18\x15 \x01(\x03H\x03R\roptionalInt64\x88\x01\x01\x12'\n" +
 	"\x0frepeated_string\x18\x16 \x03(\tR\x0erepeatedString\x12%\n" +
 	"\x0erepeated_int32\x18\x17 \x03(\x05R\rrepeatedInt32\x12]\n" +
 	"\x10string_int64_map\x18\x18 \x03(\v23.example.golden.CoveragePayload.StringInt64MapEntryR\x0estringInt64Map\x12M\n" +
@@ -1767,7 +1838,11 @@ const file_golden_proto_rawDesc = "" +
 	"\vsearch_text\x18< \x01(\tH\x00R\n" +
 	"searchText\x12\x1d\n" +
 	"\tsearch_id\x18= \x01(\x05H\x00R\bsearchId\x12E\n" +
-	"\rsearch_nested\x18> \x01(\v2\x1e.example.golden.NestedCoverageH\x00R\fsearchNested\x1aA\n" +
+	"\rsearch_nested\x18> \x01(\v2\x1e.example.golden.NestedCoverageH\x00R\fsearchNested\x12!\n" +
+	"\x06ref_id\x18F \x01(\tB\b\xf2\xa7\x1d\x04\"\x02P\aH\x01R\x05refId\x12\x1b\n" +
+	"\bref_slug\x18G \x01(\tH\x01R\arefSlug\x12?\n" +
+	"\n" +
+	"ref_nested\x18H \x01(\v2\x1e.example.golden.NestedCoverageH\x01R\trefNested\x1aA\n" +
 	"\x13StringInt64MapEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01\x1a\\\n" +
@@ -1776,7 +1851,8 @@ const file_golden_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x1e.example.golden.NestedCoverageR\x05value:\x028\x01:n\xf2\xa7\x1dj\x12\x0fCoveragePayload\x1aW\x129Covers protobuf shapes that must map to OpenAPI and ogen.\xa2\x06\x19\n" +
 	"\vx-ogen-name\x12\n" +
 	"\"Coverage\"B\x10\n" +
-	"\x06search\x12\x06\xf2\xa7\x1d\x02\b\x01B\x12\n" +
+	"\x06search\x12\x06\xf2\xa7\x1d\x02\b\x01B\r\n" +
+	"\x03ref\x12\x06\xf2\xa7\x1d\x02\b\x03B\x12\n" +
 	"\x10_optional_stringB\x11\n" +
 	"\x0f_optional_int64\"5\n" +
 	"\x13UploadAvatarRequest\x12\x1e\n" +
@@ -1950,33 +2026,34 @@ var file_golden_proto_depIdxs = []int32{
 	37, // 29: example.golden.CoveragePayload.any_value:type_name -> google.protobuf.Any
 	38, // 30: example.golden.CoveragePayload.field_mask_value:type_name -> google.protobuf.FieldMask
 	19, // 31: example.golden.CoveragePayload.search_nested:type_name -> example.golden.NestedCoverage
-	18, // 32: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
-	9,  // 33: example.golden.UserChangedPayload.user:type_name -> example.golden.User
-	34, // 34: example.golden.Error.details:type_name -> google.protobuf.Struct
-	19, // 35: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
-	1,  // 36: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
-	3,  // 37: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
-	5,  // 38: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
-	7,  // 39: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
-	11, // 40: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
-	13, // 41: example.golden.CoverageAPI.WatchCoverage:input_type -> example.golden.WatchCoverageRequest
-	15, // 42: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
-	16, // 43: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
-	17, // 44: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
-	2,  // 45: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
-	4,  // 46: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
-	6,  // 47: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
-	39, // 48: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
-	12, // 49: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
-	12, // 50: example.golden.CoverageAPI.WatchCoverage:output_type -> example.golden.EchoCoverageResponse
-	39, // 51: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
-	39, // 52: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
-	39, // 53: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
-	45, // [45:54] is the sub-list for method output_type
-	36, // [36:45] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	19, // 32: example.golden.CoveragePayload.ref_nested:type_name -> example.golden.NestedCoverage
+	18, // 33: example.golden.UserChangedEvent.event:type_name -> example.golden.UserChangedPayload
+	9,  // 34: example.golden.UserChangedPayload.user:type_name -> example.golden.User
+	34, // 35: example.golden.Error.details:type_name -> google.protobuf.Struct
+	19, // 36: example.golden.CoveragePayload.NestedMapEntry.value:type_name -> example.golden.NestedCoverage
+	1,  // 37: example.golden.UserAPI.GetUser:input_type -> example.golden.GetUserRequest
+	3,  // 38: example.golden.UserAPI.ListUsers:input_type -> example.golden.ListUsersRequest
+	5,  // 39: example.golden.UserAPI.CreateUser:input_type -> example.golden.CreateUserRequest
+	7,  // 40: example.golden.UserAPI.DeleteUser:input_type -> example.golden.DeleteUserRequest
+	11, // 41: example.golden.CoverageAPI.EchoCoverage:input_type -> example.golden.EchoCoverageRequest
+	13, // 42: example.golden.CoverageAPI.WatchCoverage:input_type -> example.golden.WatchCoverageRequest
+	15, // 43: example.golden.UploadAPI.UploadAvatar:input_type -> example.golden.UploadAvatarRequest
+	16, // 44: example.golden.UploadAPI.CreatePost:input_type -> example.golden.CreatePostRequest
+	17, // 45: example.golden.WebhookAPI.UserChanged:input_type -> example.golden.UserChangedEvent
+	2,  // 46: example.golden.UserAPI.GetUser:output_type -> example.golden.GetUserResponse
+	4,  // 47: example.golden.UserAPI.ListUsers:output_type -> example.golden.ListUsersResponse
+	6,  // 48: example.golden.UserAPI.CreateUser:output_type -> example.golden.CreateUserResponse
+	39, // 49: example.golden.UserAPI.DeleteUser:output_type -> google.protobuf.Empty
+	12, // 50: example.golden.CoverageAPI.EchoCoverage:output_type -> example.golden.EchoCoverageResponse
+	12, // 51: example.golden.CoverageAPI.WatchCoverage:output_type -> example.golden.EchoCoverageResponse
+	39, // 52: example.golden.UploadAPI.UploadAvatar:output_type -> google.protobuf.Empty
+	39, // 53: example.golden.UploadAPI.CreatePost:output_type -> google.protobuf.Empty
+	39, // 54: example.golden.WebhookAPI.UserChanged:output_type -> google.protobuf.Empty
+	46, // [46:55] is the sub-list for method output_type
+	37, // [37:46] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_golden_proto_init() }
@@ -1990,6 +2067,9 @@ func file_golden_proto_init() {
 		(*CoveragePayload_SearchText)(nil),
 		(*CoveragePayload_SearchId)(nil),
 		(*CoveragePayload_SearchNested)(nil),
+		(*CoveragePayload_RefId)(nil),
+		(*CoveragePayload_RefSlug)(nil),
+		(*CoveragePayload_RefNested)(nil),
 	}
 	file_golden_proto_msgTypes[18].OneofWrappers = []any{}
 	type x struct{}

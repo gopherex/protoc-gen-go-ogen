@@ -86,6 +86,9 @@ type Coverage struct {
 	NestedMap      OptCoverageNestedMap       `json:"nestedMap"`
 	OptionalInt64  OptStringInt64             `json:"optionalInt64"`
 	OptionalString OptNilString               `json:"optionalString"`
+	RefId          OptUUID                    `json:"refId"`
+	RefNested      OptNestedCoverage          `json:"refNested"`
+	RefSlug        OptString                  `json:"refSlug"`
 	RepeatedEnum   []CoverageRepeatedEnumItem `json:"repeatedEnum"`
 	RepeatedInt32  []int32                    `json:"repeatedInt32"`
 	RepeatedString []string                   `json:"repeatedString"`
@@ -212,6 +215,21 @@ func (s *Coverage) GetOptionalInt64() OptStringInt64 {
 // GetOptionalString returns the value of OptionalString.
 func (s *Coverage) GetOptionalString() OptNilString {
 	return s.OptionalString
+}
+
+// GetRefId returns the value of RefId.
+func (s *Coverage) GetRefId() OptUUID {
+	return s.RefId
+}
+
+// GetRefNested returns the value of RefNested.
+func (s *Coverage) GetRefNested() OptNestedCoverage {
+	return s.RefNested
+}
+
+// GetRefSlug returns the value of RefSlug.
+func (s *Coverage) GetRefSlug() OptString {
+	return s.RefSlug
 }
 
 // GetRepeatedEnum returns the value of RepeatedEnum.
@@ -402,6 +420,21 @@ func (s *Coverage) SetOptionalInt64(val OptStringInt64) {
 // SetOptionalString sets the value of OptionalString.
 func (s *Coverage) SetOptionalString(val OptNilString) {
 	s.OptionalString = val
+}
+
+// SetRefId sets the value of RefId.
+func (s *Coverage) SetRefId(val OptUUID) {
+	s.RefId = val
+}
+
+// SetRefNested sets the value of RefNested.
+func (s *Coverage) SetRefNested(val OptNestedCoverage) {
+	s.RefNested = val
+}
+
+// SetRefSlug sets the value of RefSlug.
+func (s *Coverage) SetRefSlug(val OptString) {
+	s.RefSlug = val
 }
 
 // SetRepeatedEnum sets the value of RepeatedEnum.

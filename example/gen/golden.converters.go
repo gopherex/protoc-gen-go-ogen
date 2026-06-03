@@ -194,6 +194,22 @@ func (src *CoveragePayload) ToOgen() (*ogen.Coverage, error) {
 		sum17 := ogen.NewNestedCoverageCoverageSearch(*o16)
 		dst.Search.SetTo(sum17)
 	}
+	switch src.GetRef().(type) {
+	case *CoveragePayload_RefId:
+		ext18, err := uuid.Parse(src.GetRefId())
+		if err != nil {
+			return nil, err
+		}
+		dst.RefId.SetTo(ext18)
+	case *CoveragePayload_RefSlug:
+		dst.RefSlug.SetTo(string(src.GetRefSlug()))
+	case *CoveragePayload_RefNested:
+		o19, err := src.GetRefNested().ToOgen()
+		if err != nil {
+			return nil, err
+		}
+		dst.RefNested.SetTo(*o19)
+	}
 	return &dst, nil
 }
 
@@ -382,6 +398,19 @@ func CoveragePayloadFromOgen(src *ogen.Coverage) (*CoveragePayload, error) {
 			}
 			dst.Search = &CoveragePayload_SearchNested{SearchNested: m46}
 		}
+	}
+	if v47, ok := src.RefId.Get(); ok {
+		dst.Ref = &CoveragePayload_RefId{RefId: v47.String()}
+	}
+	if v48, ok := src.RefSlug.Get(); ok {
+		dst.Ref = &CoveragePayload_RefSlug{RefSlug: string(v48)}
+	}
+	if v49, ok := src.RefNested.Get(); ok {
+		m50, err := NestedCoverageFromOgen(&v49)
+		if err != nil {
+			return nil, err
+		}
+		dst.Ref = &CoveragePayload_RefNested{RefNested: m50}
 	}
 	return dst, nil
 }

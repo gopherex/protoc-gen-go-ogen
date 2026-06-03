@@ -401,6 +401,42 @@ func (c *convGen) toOgenOneof(oneof *protogen.Oneof, of *ir.Field) {
 	c.gf.P("}")
 }
 
+// toOgenOneofObject renders an OBJECT-mode oneof: each branch maps to an
+// optional ogen property, set inside the matched proto oneof case.
+func (c *convGen) toOgenOneofObject(oneof *protogen.Oneof, fields map[string]*ir.Field) {
+	c.gf.P("switch src.Get", oneof.GoName, "().(type) {")
+	for _, pf := range oneof.Fields {
+		of := fields[fieldOpenAPIName(pf)]
+		if of == nil {
+			continue
+		}
+		c.gf.P("case *", pf.GoIdent, ":")
+		c.toOgenOneofBranch(pf, of)
+	}
+	c.gf.P("}")
+}
+
+// toOgenOneofBranch sets the ogen property for one oneof branch. The branch is
+// known to be the active case, so no presence guard is emitted.
+func (c *convGen) toOgenOneofBranch(pf *protogen.Field, of *ir.Field) {
+	if unsupportedType(of.Type) && !isWKTJSON(pf) {
+		c.gf.P("// ", of.Name, ": unsupported type, skipped")
+		return
+	}
+	dst := "dst." + of.Name
+	getter := "src.Get" + pf.GoName + "()"
+	core, wrapped := unwrapGeneric(of.Type)
+	if wrapped {
+		if iv, ok := c.toOgenInner(pf, core, getter); ok {
+			c.gf.P(dst, ".SetTo(", iv, ")")
+		}
+		return
+	}
+	if expr, ok := c.toOgenInner(pf, of.Type, getter); ok {
+		c.gf.P(dst, " = ", expr)
+	}
+}
+
 // ---- FromOgen ----
 
 func (c *convGen) fromOgenField(pf *protogen.Field, of *ir.Field) {
@@ -603,6 +639,31 @@ func (c *convGen) fromOgenOneof(oneof *protogen.Oneof, of *ir.Field) {
 		c.gf.P("}")
 	} else {
 		emit("src." + of.Name)
+	}
+}
+
+// fromOgenOneofObject reconstructs a protobuf oneof from OBJECT-mode ogen
+// properties: whichever branch property is present builds the oneof wrapper.
+func (c *convGen) fromOgenOneofObject(oneof *protogen.Oneof, fields map[string]*ir.Field) {
+	for _, pf := range oneof.Fields {
+		of := fields[fieldOpenAPIName(pf)]
+		if of == nil {
+			continue
+		}
+		core, wrapped := unwrapGeneric(of.Type)
+		if unsupportedType(core) {
+			c.gf.P("// ", of.Name, ": unsupported oneof branch, skipped")
+			continue
+		}
+		if !wrapped {
+			continue
+		}
+		v := c.newTmp("v")
+		c.gf.P("if ", v, ", ok := src.", of.Name, ".Get(); ok {")
+		if pe, ok := c.fromOgenInner(pf, core, v); ok {
+			c.gf.P("dst.", oneof.GoName, " = &", pf.GoIdent, "{", pf.GoName, ": ", pe, "}")
+		}
+		c.gf.P("}")
 	}
 }
 

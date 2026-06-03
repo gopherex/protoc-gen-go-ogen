@@ -255,6 +255,10 @@ func (c *convGen) genToOgen(msg *protogen.Message, ot *ir.Type, fields map[strin
 		if oneof.Desc.IsSynthetic() {
 			continue
 		}
+		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+			c.toOgenOneofObject(oneof, fields)
+			continue
+		}
 		of := fields[string(oneof.Desc.Name())]
 		if of == nil {
 			continue
@@ -286,6 +290,10 @@ func (c *convGen) genFromOgen(msg *protogen.Message, ot *ir.Type, fields map[str
 	}
 	for _, oneof := range msg.Oneofs {
 		if oneof.Desc.IsSynthetic() {
+			continue
+		}
+		if oneofMode(oneof) == ogen.OneofSchemaMode_ONEOF_SCHEMA_MODE_OBJECT {
+			c.fromOgenOneofObject(oneof, fields)
 			continue
 		}
 		of := fields[string(oneof.Desc.Name())]

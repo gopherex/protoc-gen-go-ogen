@@ -148,6 +148,21 @@ func (s *Coverage) SetFake() {
 	}
 	{
 		{
+			s.RefId.SetFake()
+		}
+	}
+	{
+		{
+			s.RefNested.SetFake()
+		}
+	}
+	{
+		{
+			s.RefSlug.SetFake()
+		}
+	}
+	{
+		{
 			s.RepeatedEnum = nil
 			for i := 0; i < 0; i++ {
 				var elem CoverageRepeatedEnumItem
@@ -543,6 +558,15 @@ func (s *OptStringUint64) SetFake() {
 	var elem uint64
 	{
 		elem = uint64(0)
+	}
+	s.SetTo(elem)
+}
+
+// SetFake set fake values.
+func (s *OptUUID) SetFake() {
+	var elem uuid.UUID
+	{
+		elem = uuid.New()
 	}
 	s.SetTo(elem)
 }

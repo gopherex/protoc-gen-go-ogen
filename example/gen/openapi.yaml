@@ -20,6 +20,13 @@ components:
         CoveragePayload:
             additionalProperties: false
             description: Covers protobuf shapes that must map to OpenAPI and ogen.
+            oneOf:
+                - required:
+                    - refId
+                - required:
+                    - refSlug
+                - required:
+                    - refNested
             properties:
                 anyJsonValue: {}
                 anyValue: {}
@@ -86,6 +93,13 @@ components:
                     type: string
                 optionalString:
                     nullable: true
+                    type: string
+                refId:
+                    format: uuid
+                    type: string
+                refNested:
+                    $ref: '#/components/schemas/NestedCoverage'
+                refSlug:
                     type: string
                 repeatedEnum:
                     items:

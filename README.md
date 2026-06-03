@@ -188,7 +188,9 @@ Options live in `ogen/ogen.proto`:
   discriminator.
 - `ogen.field` — property name, required override, format, enum string/int,
   `x-ogen-properties` Go name.
-- `ogen.oneof` — `oneOf`/`anyOf` mode and discriminator.
+- `ogen.oneof` — `oneOf`/`anyOf`/`object` mode and discriminator. `object` mode
+  emits the protojson form (one property per branch + `oneOf`-by-required), the
+  correct shape when branches share a JSON type (e.g. `{id|slug}`).
 
 Field locations are explicit: `parameters[].field_path` (+ `in:`
 PATH/QUERY/HEADER/COOKIE), `request_body.field_path`, and `responses[].field_path`
@@ -250,7 +252,7 @@ streaming media-type extension; it is separate from SSE.)
 | `repeated` | array · `map<K,V>` → object `additionalProperties` |
 | message | reusable component schema |
 | enum | integer enum (string enum with `enum_as_string`) |
-| `oneof` | `oneOf` (or `anyOf`); optional discriminator |
+| `oneof` | `oneOf` (or `anyOf`, or `object` protojson form); optional discriminator |
 | Timestamp/Duration | `string` `date-time`/`duration` |
 | wrapper types | nullable scalar · Struct/Any → object · Value → any |
 

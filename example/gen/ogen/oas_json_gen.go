@@ -301,6 +301,24 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RefId.Set {
+			e.FieldStart("refId")
+			s.RefId.Encode(e)
+		}
+	}
+	{
+		if s.RefNested.Set {
+			e.FieldStart("refNested")
+			s.RefNested.Encode(e)
+		}
+	}
+	{
+		if s.RefSlug.Set {
+			e.FieldStart("refSlug")
+			s.RefSlug.Encode(e)
+		}
+	}
+	{
 		if s.RepeatedEnum != nil {
 			e.FieldStart("repeatedEnum")
 			e.ArrStart()
@@ -410,7 +428,7 @@ func (s *Coverage) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCoverage = [38]string{
+var jsonFieldsNameOfCoverage = [41]string{
 	0:  "anyJsonValue",
 	1:  "anyValue",
 	2:  "boolValue",
@@ -433,22 +451,25 @@ var jsonFieldsNameOfCoverage = [38]string{
 	19: "nestedMap",
 	20: "optionalInt64",
 	21: "optionalString",
-	22: "repeatedEnum",
-	23: "repeatedInt32",
-	24: "repeatedString",
-	25: "search",
-	26: "sfixed32Value",
-	27: "sfixed64Value",
-	28: "sint32Value",
-	29: "sint64Value",
-	30: "stringInt64Map",
-	31: "stringValue",
-	32: "stringWrapper",
-	33: "structValue",
-	34: "timestampValue",
-	35: "uint32Value",
-	36: "uint64Value",
-	37: "uint64Wrapper",
+	22: "refId",
+	23: "refNested",
+	24: "refSlug",
+	25: "repeatedEnum",
+	26: "repeatedInt32",
+	27: "repeatedString",
+	28: "search",
+	29: "sfixed32Value",
+	30: "sfixed64Value",
+	31: "sint32Value",
+	32: "sint64Value",
+	33: "stringInt64Map",
+	34: "stringValue",
+	35: "stringWrapper",
+	36: "structValue",
+	37: "timestampValue",
+	38: "uint32Value",
+	39: "uint64Value",
+	40: "uint64Wrapper",
 }
 
 // Decode decodes Coverage from json.
@@ -682,6 +703,36 @@ func (s *Coverage) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"optionalString\"")
+			}
+		case "refId":
+			if err := func() error {
+				s.RefId.Reset()
+				if err := s.RefId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"refId\"")
+			}
+		case "refNested":
+			if err := func() error {
+				s.RefNested.Reset()
+				if err := s.RefNested.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"refNested\"")
+			}
+		case "refSlug":
+			if err := func() error {
+				s.RefSlug.Reset()
+				if err := s.RefSlug.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"refSlug\"")
 			}
 		case "repeatedEnum":
 			if err := func() error {
@@ -2613,6 +2664,41 @@ func (s OptStringUint64) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptStringUint64) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes uuid.UUID as json.
+func (o OptUUID) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	json.EncodeUUID(e, o.Value)
+}
+
+// Decode decodes uuid.UUID from json.
+func (o *OptUUID) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUUID to nil")
+	}
+	o.Set = true
+	v, err := json.DecodeUUID(d)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUUID) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUUID) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
