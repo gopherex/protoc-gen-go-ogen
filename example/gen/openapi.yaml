@@ -402,6 +402,14 @@ components:
             x-ogen-properties:
                 displayName:
                     name: PublicName
+        WatchCoverageRequest:
+            additionalProperties: false
+            properties:
+                topic:
+                    type: string
+            required:
+                - topic
+            type: object
 info:
     description: Golden fixture for protoc-gen-ogen options.
     title: Golden Example API
@@ -469,6 +477,34 @@ paths:
                                 $ref: '#/components/schemas/Error'
                     description: Unexpected error.
             summary: Echo schema coverage payload
+            tags:
+                - coverage
+            x-ogen-operation-group: Coverage
+    /v1/coverage/watch:
+        get:
+            operationId: watchCoverage
+            parameters:
+                - in: query
+                  name: topic
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    content:
+                        text/event-stream:
+                            schema:
+                                format: binary
+                                type: string
+                            x-ogen-sse: true
+                    description: Coverage events as Server-Sent Events.
+                default:
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
+                    description: Unexpected error.
+            summary: Watch coverage events
             tags:
                 - coverage
             x-ogen-operation-group: Coverage

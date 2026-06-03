@@ -114,6 +114,12 @@ type CoverageInvoker interface {
 	//
 	// POST /v1/coverage/echo
 	EchoCoverage(ctx context.Context, request *EchoCoverageRequest, options ...RequestOption) (EchoCoverageRes, error)
+	// WatchCoverage invokes watchCoverage operation.
+	//
+	// Watch coverage events.
+	//
+	// GET /v1/coverage/watch
+	WatchCoverage(ctx context.Context, params WatchCoverageParams, options ...RequestOption) (WatchCoverageRes, error)
 }
 
 // UploadsInvoker invokes operations described by OpenAPI v3 specification.
@@ -1072,6 +1078,116 @@ func (c *Client) sendUploadAvatar(ctx context.Context, request UploadAvatarReq, 
 
 	stage = "DecodeResponse"
 	result, err := decodeUploadAvatarResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// WatchCoverage invokes watchCoverage operation.
+//
+// Watch coverage events.
+//
+// GET /v1/coverage/watch
+func (c *Client) WatchCoverage(ctx context.Context, params WatchCoverageParams, options ...RequestOption) (WatchCoverageRes, error) {
+	res, err := c.sendWatchCoverage(ctx, params, options...)
+	return res, err
+}
+
+func (c *Client) sendWatchCoverage(ctx context.Context, params WatchCoverageParams, requestOptions ...RequestOption) (res WatchCoverageRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("watchCoverage"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/v1/coverage/watch"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, WatchCoverageOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	var reqCfg requestConfig
+	reqCfg.setDefaults(c.baseClient)
+	for _, o := range requestOptions {
+		o(&reqCfg)
+	}
+
+	stage = "BuildURL"
+	u := c.serverURL
+	if override := reqCfg.ServerURL; override != nil {
+		u = override
+	}
+	u = uri.Clone(u)
+	var pathParts [1]string
+	pathParts[0] = "/v1/coverage/watch"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeQueryParams"
+	q := uri.NewQueryEncoder()
+	{
+		// Encode "topic" parameter.
+		cfg := uri.QueryParameterEncodingConfig{
+			Name:    "topic",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.Topic))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode query")
+		}
+	}
+	u.RawQuery = q.Values().Encode()
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	if err := reqCfg.onRequest(r); err != nil {
+		return res, errors.Wrap(err, "edit request")
+	}
+
+	stage = "SendRequest"
+	resp, err := reqCfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer body.Close()
+
+	if err := reqCfg.onResponse(resp); err != nil {
+		return res, errors.Wrap(err, "edit response")
+	}
+
+	stage = "DecodeResponse"
+	result, err := decodeWatchCoverageResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

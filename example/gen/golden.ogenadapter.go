@@ -6,6 +6,7 @@ import (
 	context "context"
 	ogen "github.com/gopherex/protoc-gen-go-ogen/example/gen/ogen"
 	grpcbridge "github.com/gopherex/protoc-gen-go-ogen/grpcbridge"
+	io "io"
 )
 
 // OgenAdapter implements the ogen Handler by delegating to gRPC services.
@@ -155,6 +156,16 @@ func (a *OgenAdapter) UploadAvatar(ctx context.Context, req ogen.UploadAvatarReq
 	}
 	_ = resp
 	return &ogen.UploadAvatarOK{}, nil
+}
+
+func (a *OgenAdapter) WatchCoverage(ctx context.Context, params ogen.WatchCoverageParams) (ogen.WatchCoverageRes, error) {
+	in := &WatchCoverageRequest{}
+	in.Topic = string(params.Topic)
+	reader := grpcbridge.ServerSentEventReader(func(w io.Writer) error {
+		stream := grpcbridge.NewServerSentEventStream[EchoCoverageResponse](ctx, w)
+		return a.coverageAPI.WatchCoverage(in, stream)
+	})
+	return &ogen.WatchCoverageOK{Data: reader}, nil
 }
 
 func (a *OgenAdapter) UserChangedWebhook(ctx context.Context, req *ogen.UserChangedPayload, params ogen.UserChangedWebhookParams) (ogen.UserChangedWebhookRes, error) {

@@ -8,6 +8,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/go-faster/jx"
 	ht "github.com/ogen-go/ogen/http"
@@ -31,6 +32,74 @@ func ReadMultipart(f ht.MultipartFile) ([]byte, error) {
 func BytesMultipart(b []byte) ht.MultipartFile {
 	return ht.MultipartFile{File: bytes.NewReader(b), Size: int64(len(b))}
 }
+
+// ServerSentEventReader runs fn in a goroutine and exposes bytes written by fn
+// as an io.Reader suitable for an ogen binary stream response.
+func ServerSentEventReader(fn func(io.Writer) error) io.Reader {
+	pr, pw := io.Pipe()
+	go func() {
+		if err := fn(pw); err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
+		_ = pw.Close()
+	}()
+	return pr
+}
+
+// ServerSentEventStream implements grpc.ServerStreamingServer[T] by writing
+// each sent protobuf message as one Server-Sent Event.
+type ServerSentEventStream[Res any] struct {
+	ctx context.Context
+	w   io.Writer
+}
+
+func NewServerSentEventStream[Res any](ctx context.Context, w io.Writer) *ServerSentEventStream[Res] {
+	return &ServerSentEventStream[Res]{ctx: ctx, w: w}
+}
+
+func (s *ServerSentEventStream[Res]) Send(msg *Res) error {
+	pm, ok := any(msg).(proto.Message)
+	if !ok {
+		return status.Error(codes.Internal, "server-stream response is not a protobuf message")
+	}
+	b, err := protojson.Marshal(pm)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(s.w, "data: "); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(s.w, strings.ReplaceAll(string(b), "\n", "\ndata: ")); err != nil {
+		return err
+	}
+	_, err = io.WriteString(s.w, "\n\n")
+	return err
+}
+
+func (s *ServerSentEventStream[Res]) SetHeader(metadata.MD) error  { return nil }
+func (s *ServerSentEventStream[Res]) SendHeader(metadata.MD) error { return nil }
+func (s *ServerSentEventStream[Res]) SetTrailer(metadata.MD)       {}
+func (s *ServerSentEventStream[Res]) Context() context.Context     { return s.ctx }
+func (s *ServerSentEventStream[Res]) SendMsg(m any) error {
+	pm, ok := m.(proto.Message)
+	if !ok {
+		return status.Error(codes.Internal, "server-stream response is not a protobuf message")
+	}
+	b, err := protojson.Marshal(pm)
+	if err != nil {
+		return err
+	}
+	if _, err := io.WriteString(s.w, "data: "); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(s.w, strings.ReplaceAll(string(b), "\n", "\ndata: ")); err != nil {
+		return err
+	}
+	_, err = io.WriteString(s.w, "\n\n")
+	return err
+}
+func (s *ServerSentEventStream[Res]) RecvMsg(any) error { return io.EOF }
 
 // HTTPStatus maps a gRPC status code to an HTTP status code, following the
 // grpc-gateway convention.

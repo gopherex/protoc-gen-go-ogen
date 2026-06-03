@@ -236,7 +236,8 @@ var UserAPI_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	CoverageAPI_EchoCoverage_FullMethodName = "/example.golden.CoverageAPI/EchoCoverage"
+	CoverageAPI_EchoCoverage_FullMethodName  = "/example.golden.CoverageAPI/EchoCoverage"
+	CoverageAPI_WatchCoverage_FullMethodName = "/example.golden.CoverageAPI/WatchCoverage"
 )
 
 // CoverageAPIClient is the client API for CoverageAPI service.
@@ -244,6 +245,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CoverageAPIClient interface {
 	EchoCoverage(ctx context.Context, in *EchoCoverageRequest, opts ...grpc.CallOption) (*EchoCoverageResponse, error)
+	WatchCoverage(ctx context.Context, in *WatchCoverageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[EchoCoverageResponse], error)
 }
 
 type coverageAPIClient struct {
@@ -264,11 +266,31 @@ func (c *coverageAPIClient) EchoCoverage(ctx context.Context, in *EchoCoverageRe
 	return out, nil
 }
 
+func (c *coverageAPIClient) WatchCoverage(ctx context.Context, in *WatchCoverageRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[EchoCoverageResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &CoverageAPI_ServiceDesc.Streams[0], CoverageAPI_WatchCoverage_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchCoverageRequest, EchoCoverageResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CoverageAPI_WatchCoverageClient = grpc.ServerStreamingClient[EchoCoverageResponse]
+
 // CoverageAPIServer is the server API for CoverageAPI service.
 // All implementations must embed UnimplementedCoverageAPIServer
 // for forward compatibility.
 type CoverageAPIServer interface {
 	EchoCoverage(context.Context, *EchoCoverageRequest) (*EchoCoverageResponse, error)
+	WatchCoverage(*WatchCoverageRequest, grpc.ServerStreamingServer[EchoCoverageResponse]) error
 	mustEmbedUnimplementedCoverageAPIServer()
 }
 
@@ -281,6 +303,9 @@ type UnimplementedCoverageAPIServer struct{}
 
 func (UnimplementedCoverageAPIServer) EchoCoverage(context.Context, *EchoCoverageRequest) (*EchoCoverageResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method EchoCoverage not implemented")
+}
+func (UnimplementedCoverageAPIServer) WatchCoverage(*WatchCoverageRequest, grpc.ServerStreamingServer[EchoCoverageResponse]) error {
+	return status.Error(codes.Unimplemented, "method WatchCoverage not implemented")
 }
 func (UnimplementedCoverageAPIServer) mustEmbedUnimplementedCoverageAPIServer() {}
 func (UnimplementedCoverageAPIServer) testEmbeddedByValue()                     {}
@@ -321,6 +346,17 @@ func _CoverageAPI_EchoCoverage_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoverageAPI_WatchCoverage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchCoverageRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(CoverageAPIServer).WatchCoverage(m, &grpc.GenericServerStream[WatchCoverageRequest, EchoCoverageResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CoverageAPI_WatchCoverageServer = grpc.ServerStreamingServer[EchoCoverageResponse]
+
 // CoverageAPI_ServiceDesc is the grpc.ServiceDesc for CoverageAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -333,7 +369,13 @@ var CoverageAPI_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CoverageAPI_EchoCoverage_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchCoverage",
+			Handler:       _CoverageAPI_WatchCoverage_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "golden.proto",
 }
 

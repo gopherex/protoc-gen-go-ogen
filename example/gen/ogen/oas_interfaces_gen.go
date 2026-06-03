@@ -32,3 +32,7 @@ type UploadAvatarRes interface {
 type UserChangedWebhookRes interface {
 	userChangedWebhookRes()
 }
+
+type WatchCoverageRes interface {
+	watchCoverageRes()
+}

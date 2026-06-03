@@ -212,6 +212,30 @@ service CoverageAPI {
       }
     };
   }
+
+  rpc WatchCoverage(WatchCoverageRequest) returns (stream EchoCoverageResponse) {
+    option (ogen.method) = {
+      http_method: HTTP_METHOD_GET
+      path: "/coverage/watch"
+      operation_id: "watchCoverage"
+      summary: "Watch coverage events"
+      parameters: {
+        field_path: "topic"
+        in: PARAMETER_LOCATION_QUERY
+        required: true
+      }
+      responses: {
+        status: 200
+        description: "Coverage events as Server-Sent Events."
+      }
+      responses: {
+        description: "Unexpected error."
+        schema: {
+          ref: "#/components/schemas/Error"
+        }
+      }
+    };
+  }
 }
 
 service UploadAPI {
@@ -593,6 +617,14 @@ message EchoCoverageRequest {
 // Converters: EchoCoverageResponse.Payload <-> ogen CoveragePayload.
 message EchoCoverageResponse {
   CoveragePayload payload = 1 [
+    (ogen.field) = {
+      required: true
+    }
+  ];
+}
+
+message WatchCoverageRequest {
+  string topic = 1 [
     (ogen.field) = {
       required: true
     }

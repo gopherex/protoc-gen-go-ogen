@@ -193,6 +193,12 @@ func (a *adapterGen) genMethod(op *ir.Operation, om opMethod) {
 	a.genParams(op, om, input)
 
 	// Call the gRPC method.
+	if om.method.Desc.IsStreamingServer() {
+		a.genServerStreamResponse(op, om)
+		a.gf.P("}")
+		a.gf.P()
+		return
+	}
 	a.gf.P("resp, err := a.", svcField(om.svc), ".", om.method.GoName, "(ctx, in)")
 	a.gf.P("if err != nil {")
 	a.gf.P("return ", failRet, "err")
@@ -306,6 +312,25 @@ func (a *adapterGen) genResponse(op *ir.Operation, om opMethod, failRet string) 
 	a.gf.P("return out, nil")
 }
 
+func (a *adapterGen) genServerStreamResponse(op *ir.Operation, om opMethod) {
+	t := successStreamType(op)
+	if t == nil {
+		a.gf.P("return nil, ", a.qual(protogen.GoIdent{GoName: "Errorf", GoImportPath: "fmt"}), "(\"server-streaming operation has no stream response\")")
+		return
+	}
+	a.gf.P("reader := ", a.qual(protogen.GoIdent{GoName: "ServerSentEventReader", GoImportPath: grpcbridgeImport}),
+		"(func(w ", a.qual(protogen.GoIdent{GoName: "Writer", GoImportPath: "io"}), ") error {")
+	a.gf.P("stream := ", a.qual(protogen.GoIdent{GoName: "NewServerSentEventStream", GoImportPath: grpcbridgeImport}),
+		"[", om.method.Output.GoIdent, "](ctx, w)")
+	a.gf.P("return a.", svcField(om.svc), ".", om.method.GoName, "(in, stream)")
+	a.gf.P("})")
+	expr := a.goType(t) + "{Data: reader}"
+	if op.Responses.Type != t {
+		expr = "&" + expr
+	}
+	a.gf.P("return ", expr, ", nil")
+}
+
 // successIRResponse returns the 2xx ogen response for an operation, if any.
 func successIRResponse(op *ir.Operation) *ir.Response {
 	if op.Responses == nil {
@@ -317,6 +342,19 @@ func successIRResponse(op *ir.Operation) *ir.Response {
 		}
 	}
 	return op.Responses.Pattern[1] // 2xx pattern
+}
+
+func successStreamType(op *ir.Operation) *ir.Type {
+	r := successIRResponse(op)
+	if r == nil {
+		return nil
+	}
+	for _, media := range r.Contents {
+		if media.Type != nil && media.Type.Is(ir.KindStream) {
+			return media.Type
+		}
+	}
+	return nil
 }
 
 // genNewError maps gRPC status codes/messages/details onto the ogen error type.

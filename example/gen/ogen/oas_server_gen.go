@@ -36,6 +36,12 @@ type CoverageHandler interface {
 	//
 	// POST /v1/coverage/echo
 	EchoCoverage(ctx context.Context, req *EchoCoverageRequest) (EchoCoverageRes, error)
+	// WatchCoverage implements watchCoverage operation.
+	//
+	// Watch coverage events.
+	//
+	// GET /v1/coverage/watch
+	WatchCoverage(ctx context.Context, params WatchCoverageParams) (WatchCoverageRes, error)
 }
 
 // UploadsHandler handles operations described by OpenAPI v3 specification.

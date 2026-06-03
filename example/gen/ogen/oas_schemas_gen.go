@@ -862,6 +862,7 @@ func (*ErrorStatusCode) getUserRes()            {}
 func (*ErrorStatusCode) listUsersRes()          {}
 func (*ErrorStatusCode) uploadAvatarRes()       {}
 func (*ErrorStatusCode) userChangedWebhookRes() {}
+func (*ErrorStatusCode) watchCoverageRes()      {}
 
 // Ref: #/components/schemas/GetHealthResponse
 type GetHealthResponse struct {
@@ -2649,3 +2650,19 @@ func (s *UserStatus) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type WatchCoverageOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s WatchCoverageOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+func (*WatchCoverageOK) watchCoverageRes() {}

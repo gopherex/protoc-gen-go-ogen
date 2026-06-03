@@ -438,6 +438,63 @@ func decodeListUsersParams(args [0]string, argsEscaped bool, r *http.Request) (p
 	return params, nil
 }
 
+// WatchCoverageParams is parameters of watchCoverage operation.
+type WatchCoverageParams struct {
+	Topic string
+}
+
+func unpackWatchCoverageParams(packed middleware.Parameters) (params WatchCoverageParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "topic",
+			In:   "query",
+		}
+		params.Topic = packed[key].(string)
+	}
+	return params
+}
+
+func decodeWatchCoverageParams(args [0]string, argsEscaped bool, r *http.Request) (params WatchCoverageParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: topic.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "topic",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Topic = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "topic",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // UserChangedWebhookParams is parameters of userChangedWebhook operation.
 type UserChangedWebhookParams struct {
 	XWebhookDelivery uuid.UUID

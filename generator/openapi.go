@@ -114,7 +114,7 @@ func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 	g.collectComponentNames(messages)
 	g.oasVersion = openAPIVersion(bundle.rootOpts, bundleHasWebhooks(bundle.files))
 	for _, file := range bundle.files {
-		g.rejectStreaming(file)
+		g.rejectUnsupportedStreaming(file)
 	}
 	if len(g.errs) > 0 {
 		return errors.Join(g.errs...)
@@ -557,7 +557,7 @@ func (g *OpenAPIGenerator) responsesObject(method *protogen.Method, responses []
 		res := map[string]any{
 			"description": firstNonEmpty(response.GetDescription(), defaultStatusDescription(status)),
 		}
-		if content := g.responseContent(method.Output, response); len(content) > 0 {
+		if content := g.responseContent(method, response); len(content) > 0 {
 			res["content"] = content
 		}
 		if headers := headersObject(response.GetHeaders()); len(headers) > 0 {
@@ -572,7 +572,23 @@ func (g *OpenAPIGenerator) responsesObject(method *protogen.Method, responses []
 	return out
 }
 
-func (g *OpenAPIGenerator) responseContent(output *protogen.Message, response *ogen.Response) map[string]any {
+func (g *OpenAPIGenerator) responseContent(method *protogen.Method, response *ogen.Response) map[string]any {
+	output := method.Output
+	if method.Desc.IsStreamingServer() && response.GetStatus() >= 200 && response.GetStatus() < 300 {
+		// Server-streaming RPCs are exposed to HTTP clients as Server-Sent
+		// Events. ogen has no native SSE codec, so generate an io.Reader body
+		// under the SSE media type; the grpc adapter serializes each protobuf
+		// response message as one "data: <protojson>" event.
+		return map[string]any{
+			firstNonEmpty(response.GetContentType(), "text/event-stream"): map[string]any{
+				"schema": map[string]any{
+					"type":   "string",
+					"format": "binary",
+				},
+				"x-ogen-sse": true,
+			},
+		}
+	}
 	var schema map[string]any
 	switch {
 	case response.GetSchema().GetRef() != "":
@@ -902,9 +918,10 @@ func mergeOperationMaps(dst, src map[string]any, kind string) error {
 	return nil
 }
 
-// rejectStreaming fails fast if a streaming RPC is exposed via ogen. ogen is
-// unary-only; streaming belongs to a separate GraphQL/WebSocket generator.
-func (g *OpenAPIGenerator) rejectStreaming(file *protogen.File) {
+// rejectUnsupportedStreaming fails fast if an unsupported streaming RPC is
+// exposed via ogen. Server-streaming is mapped to SSE; client- and bidi-
+// streaming still have no HTTP mapping here.
+func (g *OpenAPIGenerator) rejectUnsupportedStreaming(file *protogen.File) {
 	for _, svc := range file.Services {
 		if opts := getServiceOptions(svc); opts != nil && opts.GetOmit() {
 			continue
@@ -918,9 +935,9 @@ func (g *OpenAPIGenerator) rejectStreaming(file *protogen.File) {
 			if !exposed {
 				continue
 			}
-			if method.Desc.IsStreamingClient() || method.Desc.IsStreamingServer() {
+			if method.Desc.IsStreamingClient() {
 				g.errs = append(g.errs, fmt.Errorf(
-					"method %s is a streaming RPC; protoc-gen-ogen supports only unary methods — remove its ogen.method binding or generate streaming with a GraphQL/WebSocket generator",
+					"method %s is a client-streaming RPC; protoc-gen-ogen supports only unary and server-streaming methods",
 					method.Desc.FullName()))
 			}
 		}

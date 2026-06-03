@@ -15,8 +15,8 @@ The result: you write normal gRPC services, annotate the proto files with HTTP
 bindings, and get one typed REST server (params, validation, idempotency,
 webhooks, file upload) without hand-writing any HTTP glue.
 
-`protoc-gen-ogen` is **unary-only**. Streaming RPCs are rejected at generation
-time (see [Streaming](#streaming)).
+`protoc-gen-ogen` supports unary RPCs and server-streaming RPCs exposed as
+OpenAPI Server-Sent Events (see [Streaming](#streaming)).
 
 ## Install
 
@@ -228,12 +228,15 @@ binary and `multipart/form-data` uploads (file parts read into `bytes`).
 
 ## Streaming
 
-`protoc-gen-ogen` is unary-only. A streaming RPC (client-, server-, or
-bidirectional) that is exposed through `ogen.method` is **rejected with a clear
-error** — REST/OpenAPI has no native protobuf-streaming mapping, so the plugin
-does not silently degrade it. Streaming RPCs without an `ogen.method` binding
+Server-streaming RPCs exposed through `ogen.method` are emitted as
+`text/event-stream` OpenAPI responses. The generated gRPC adapter returns an
+ogen `io.Reader` response and serializes each protobuf response message as one
+SSE `data: <protojson>` event.
+
+Client-streaming and bidirectional streaming RPCs exposed through `ogen.method`
+are rejected with a clear error. Streaming RPCs without an `ogen.method` binding
 are ignored. (`x-ogen-json-streaming` is still supported as an ogen JSON
-streaming media-type extension; it is not SSE/WebSocket.)
+streaming media-type extension; it is separate from SSE.)
 
 ## Type mapping
 
@@ -264,7 +267,7 @@ make gen-opts        # regenerate ogen/ogen.pb.go from ogen/ogen.proto (easyp)
 Repository layout:
 
 - `main.go`, `generator/` — the plugin. `openapi.go` (OpenAPI emission,
-  idempotency, streaming guard), `validate.go` (PGV → constraints), `ogen_run.go`
+  idempotency, SSE streaming guard), `validate.go` (PGV → constraints), `ogen_run.go`
   (in-process ogen), `converters*.go` (proto↔ogen), `adapter.go` (gRPC adapter).
 - `ogen/` — `ogen.proto` options and generated `ogen.pb.go`.
 - `convert/`, `grpcbridge/` — runtime packages imported by generated code.

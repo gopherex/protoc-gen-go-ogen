@@ -143,29 +143,68 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
-			case 'c': // Prefix: "coverage/echo"
+			case 'c': // Prefix: "coverage/"
 
-				if l := len("coverage/echo"); len(elem) >= l && elem[0:l] == "coverage/echo" {
+				if l := len("coverage/"); len(elem) >= l && elem[0:l] == "coverage/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "POST":
-						s.handleEchoCoverageRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "POST",
-							allowedHeaders: rn6AllowedHeaders,
-							acceptPost:     "application/json",
-							acceptPatch:    "",
-						})
+					break
+				}
+				switch elem[0] {
+				case 'e': // Prefix: "echo"
+
+					if l := len("echo"); len(elem) >= l && elem[0:l] == "echo" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "POST":
+							s.handleEchoCoverageRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "POST",
+								allowedHeaders: rn6AllowedHeaders,
+								acceptPost:     "application/json",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
+				case 'w': // Prefix: "watch"
+
+					if l := len("watch"); len(elem) >= l && elem[0:l] == "watch" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleWatchCoverageRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
 				}
 
 			case 'p': // Prefix: "posts"
@@ -425,29 +464,68 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
-			case 'c': // Prefix: "coverage/echo"
+			case 'c': // Prefix: "coverage/"
 
-				if l := len("coverage/echo"); len(elem) >= l && elem[0:l] == "coverage/echo" {
+				if l := len("coverage/"); len(elem) >= l && elem[0:l] == "coverage/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "POST":
-						r.name = EchoCoverageOperation
-						r.summary = "Echo schema coverage payload"
-						r.operationID = "echoCoverage"
-						r.operationGroup = "Coverage"
-						r.pathPattern = "/v1/coverage/echo"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'e': // Prefix: "echo"
+
+					if l := len("echo"); len(elem) >= l && elem[0:l] == "echo" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "POST":
+							r.name = EchoCoverageOperation
+							r.summary = "Echo schema coverage payload"
+							r.operationID = "echoCoverage"
+							r.operationGroup = "Coverage"
+							r.pathPattern = "/v1/coverage/echo"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'w': // Prefix: "watch"
+
+					if l := len("watch"); len(elem) >= l && elem[0:l] == "watch" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = WatchCoverageOperation
+							r.summary = "Watch coverage events"
+							r.operationID = "watchCoverage"
+							r.operationGroup = "Coverage"
+							r.pathPattern = "/v1/coverage/watch"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
 			case 'p': // Prefix: "posts"

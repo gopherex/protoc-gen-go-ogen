@@ -85,6 +85,15 @@ func (UnimplementedHandler) UploadAvatar(ctx context.Context, req UploadAvatarRe
 	return r, ht.ErrNotImplemented
 }
 
+// WatchCoverage implements watchCoverage operation.
+//
+// Watch coverage events.
+//
+// GET /v1/coverage/watch
+func (UnimplementedHandler) WatchCoverage(ctx context.Context, params WatchCoverageParams) (r WatchCoverageRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 var _ WebhookHandler = UnimplementedHandler{}
 
 // UserChangedWebhook implements userChangedWebhook operation.

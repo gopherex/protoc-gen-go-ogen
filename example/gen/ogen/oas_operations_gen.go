@@ -14,5 +14,6 @@ const (
 	GetUserOperation            OperationName = "GetUser"
 	ListUsersOperation          OperationName = "ListUsers"
 	UploadAvatarOperation       OperationName = "UploadAvatar"
+	WatchCoverageOperation      OperationName = "WatchCoverage"
 	UserChangedWebhookOperation OperationName = "UserChangedWebhook"
 )
