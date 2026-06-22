@@ -361,6 +361,11 @@ func (c *convGen) toOgenInner(pf *protogen.Field, ot *ir.Type, src string) (stri
 		return "*" + tmp, true
 	case ot.Is(ir.KindEnum) && pf.Enum != nil:
 		return c.toOgenEnum(pf, ot, src), true
+	case ot.Is(ir.KindEnum) && pf.Enum == nil:
+		// A scalar proto field mapped to an ogen enum schema (e.g. a string
+		// field with x-enum values). The ogen enum is backed by that scalar,
+		// so a direct cast preserves the value.
+		return c.qual(c.oid(ot.Name)) + "(" + src + ")", true
 	case externalImports[ot.Go()] != "":
 		return c.toOgenExternal(ot, src)
 	case ot.Is(ir.KindPrimitive):
@@ -641,6 +646,10 @@ func (c *convGen) fromOgenInner(pf *protogen.Field, ot *ir.Type, src string) (st
 		return tmp, true
 	case ot.Is(ir.KindEnum) && pf.Enum != nil:
 		return c.fromOgenEnum(pf, ot, src), true
+	case ot.Is(ir.KindEnum) && pf.Enum == nil:
+		// Inverse of the toOgenInner enum-without-proto-enum case: the ogen
+		// enum is backed by the proto scalar, so cast it straight back.
+		return protoScalarGo(pf.Desc.Kind()) + "(" + src + ")", true
 	case externalImports[ot.Go()] != "":
 		return c.fromOgenExternal(ot, src), true
 	case ot.Is(ir.KindPrimitive):

@@ -164,6 +164,11 @@ func (a *adapterGen) genMethod(op *ir.Operation, om opMethod) {
 	failRet := "nil, "
 	if !pass {
 		failRet = ""
+	} else if op.Responses.Type != nil && !op.Responses.Type.DoPassByPointer() {
+		// The success type is returned by value (e.g. server-streaming
+		// rest.StreamLogsOK), so its zero value — not nil — is the failure
+		// return. Pointer/interface success types keep "nil".
+		failRet = a.goType(op.Responses.Type) + "{}, "
 	}
 
 	// Signature: Name(ctx context.Context[, req <ReqGoType>][, params <Name>Params]) <result>
