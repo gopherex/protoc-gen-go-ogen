@@ -312,3 +312,45 @@ func TestHasDocLevelOptions(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyOpenAPISecurity(t *testing.T) {
+	doc := map[string]any{"openapi": "3.0.3"}
+	if err := applyOpenAPISecurity(doc, "bearer"); err != nil {
+		t.Fatalf("applyOpenAPISecurity: %v", err)
+	}
+	comps, ok := doc["components"].(map[string]any)
+	if !ok {
+		t.Fatalf("components not created: %#v", doc["components"])
+	}
+	schemes, ok := comps["securitySchemes"].(map[string]any)
+	if !ok {
+		t.Fatalf("securitySchemes not created: %#v", comps["securitySchemes"])
+	}
+	bearer, ok := schemes["bearerAuth"].(map[string]any)
+	if !ok {
+		t.Fatalf("bearerAuth missing: %#v", schemes)
+	}
+	if bearer["type"] != "http" || bearer["scheme"] != "bearer" {
+		t.Fatalf("bearer scheme wrong: %#v", bearer)
+	}
+	sec, ok := doc["security"].([]any)
+	if !ok || len(sec) != 1 {
+		t.Fatalf("global security wrong: %#v", doc["security"])
+	}
+	if _, ok := sec[0].(map[string]any)["bearerAuth"]; !ok {
+		t.Fatalf("global security requirement missing bearerAuth: %#v", sec[0])
+	}
+
+	// An existing components block is preserved.
+	doc2 := map[string]any{"components": map[string]any{"schemas": map[string]any{"X": map[string]any{}}}}
+	if err := applyOpenAPISecurity(doc2, "bearer"); err != nil {
+		t.Fatalf("applyOpenAPISecurity (existing components): %v", err)
+	}
+	if _, ok := doc2["components"].(map[string]any)["schemas"]; !ok {
+		t.Fatalf("existing schemas dropped: %#v", doc2["components"])
+	}
+
+	if err := applyOpenAPISecurity(map[string]any{}, "apikey"); err == nil {
+		t.Fatalf("expected error for unsupported scheme")
+	}
+}

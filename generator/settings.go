@@ -14,6 +14,12 @@ type PluginSettings struct {
 	// across the whole protoc invocation (one_of|any_of|object). Empty defers to
 	// the document's default_oneof_schema_mode file option, then ONE_OF.
 	DefaultOneofSchemaMode string
+	// OpenAPISecurity, when set, adds a security scheme + a global security
+	// requirement to the OpenAPI document written to disk (so Swagger UI shows an
+	// Authorize box). Only "bearer" (HTTP bearer / JWT) is supported. The scheme
+	// is NOT fed to ogen — the generated HTTP server stays SecurityHandler-free;
+	// auth is expected to be enforced by surrounding middleware.
+	OpenAPISecurity string
 }
 
 // RegisterFlags binds plugin settings to a flag set. Wire the flag set's Set
@@ -22,6 +28,7 @@ func (s *PluginSettings) RegisterFlags(fs *flag.FlagSet) {
 	fs.StringVar(&s.OgenConfig, "ogen_config", "", "path to ogen config file (ogen.yml)")
 	fs.StringVar(&s.OpenAPIOut, "openapi_out", "", "directory to write generated openapi.yaml files")
 	fs.StringVar(&s.DefaultOneofSchemaMode, "default_oneof_schema_mode", "", "default oneof OpenAPI mode for all oneofs (one_of|any_of|object)")
+	fs.StringVar(&s.OpenAPISecurity, "openapi_security", "", "add a security scheme to the OpenAPI doc only (bearer)")
 }
 
 // NewPluginSettingsFromPlugin returns the settings already populated by the flag

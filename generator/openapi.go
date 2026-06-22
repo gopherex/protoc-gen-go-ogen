@@ -183,16 +183,27 @@ func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 		finalizeObjectOneof(doc, true)
 	}
 
+	// Marshal the ogen-facing document FIRST, before any security scheme is
+	// added: ogen would otherwise synthesize a SecurityHandler requirement on
+	// the generated server. Security is a documentation concern here (Swagger
+	// UI Authorize), enforced by surrounding middleware.
+	ogenSource := doc
+	if ogenDoc != nil {
+		ogenSource = ogenDoc
+	}
+	ogenData, err := yaml.Marshal(ogenSource)
+	if err != nil {
+		return fmt.Errorf("marshal ogen openapi yaml: %w", err)
+	}
+
+	if g.Settings.OpenAPISecurity != "" {
+		if err := applyOpenAPISecurity(doc, g.Settings.OpenAPISecurity); err != nil {
+			return err
+		}
+	}
 	data, err := yaml.Marshal(doc)
 	if err != nil {
 		return fmt.Errorf("marshal openapi yaml: %w", err)
-	}
-	ogenData := data
-	if ogenDoc != nil {
-		ogenData, err = yaml.Marshal(ogenDoc)
-		if err != nil {
-			return fmt.Errorf("marshal ogen openapi yaml: %w", err)
-		}
 	}
 
 	yamlName := openapiFileName(bundle.root, bundle.rootOpts)
@@ -216,6 +227,33 @@ func (g *OpenAPIGenerator) generateBundle(bundle *openAPIBundle) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// applyOpenAPISecurity adds a security scheme + a global security requirement to
+// the document (Swagger UI's Authorize box). Only "bearer" is supported. It
+// mutates the disk-facing document only; the ogen-facing copy is marshalled
+// before this runs so the generated server stays SecurityHandler-free.
+func applyOpenAPISecurity(doc map[string]any, scheme string) error {
+	if scheme != "bearer" {
+		return fmt.Errorf("invalid openapi_security %q (want bearer)", scheme)
+	}
+	comps, _ := doc["components"].(map[string]any)
+	if comps == nil {
+		comps = map[string]any{}
+		doc["components"] = comps
+	}
+	schemes, _ := comps["securitySchemes"].(map[string]any)
+	if schemes == nil {
+		schemes = map[string]any{}
+		comps["securitySchemes"] = schemes
+	}
+	schemes["bearerAuth"] = map[string]any{
+		"type":         "http",
+		"scheme":       "bearer",
+		"bearerFormat": "JWT",
+	}
+	doc["security"] = []any{map[string]any{"bearerAuth": []any{}}}
 	return nil
 }
 
