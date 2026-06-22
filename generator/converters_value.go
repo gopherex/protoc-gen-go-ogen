@@ -72,6 +72,7 @@ func extIdent(pkg, name string) protogen.GoIdent {
 		"time":       "time",
 		"wrapperspb": "google.golang.org/protobuf/types/known/wrapperspb",
 		"fmt":        "fmt",
+		"strconv":    "strconv",
 	}
 	return protogen.GoIdent{GoName: name, GoImportPath: imports[pkg]}
 }
@@ -113,6 +114,48 @@ func (c *convGen) protoElemGoType(pf *protogen.Field) string {
 }
 
 func mapValueField(pf *protogen.Field) *protogen.Field { return pf.Message.Fields[1] }
+func mapKeyField(pf *protogen.Field) *protogen.Field   { return pf.Message.Fields[0] }
+
+// keyToStrFn returns a "func(k <T>) string {...}" literal converting a proto map
+// key to the string key an ogen map[string]V uses, or "" when the key is already
+// a string (OpenAPI/JSON object keys are strings; proto allows integer/bool keys).
+func (c *convGen) keyToStrFn(kf *protogen.Field) string {
+	sc := func(fn string) string { return c.qual(extIdent("strconv", fn)) }
+	switch kf.Desc.Kind() {
+	case protoreflect.BoolKind:
+		return "func(k bool) string { return " + sc("FormatBool") + "(k) }"
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		return "func(k int32) string { return " + sc("FormatInt") + "(int64(k), 10) }"
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return "func(k int64) string { return " + sc("FormatInt") + "(k, 10) }"
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		return "func(k uint32) string { return " + sc("FormatUint") + "(uint64(k), 10) }"
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return "func(k uint64) string { return " + sc("FormatUint") + "(k, 10) }"
+	default:
+		return ""
+	}
+}
+
+// keyFromStrFn returns a "func(s string) (<T>, error) {...}" literal parsing an
+// ogen string map key back into the proto map's key type, or "" for string keys.
+func (c *convGen) keyFromStrFn(kf *protogen.Field) string {
+	sc := func(fn string) string { return c.qual(extIdent("strconv", fn)) }
+	switch kf.Desc.Kind() {
+	case protoreflect.BoolKind:
+		return "func(s string) (bool, error) { return " + sc("ParseBool") + "(s) }"
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		return "func(s string) (int32, error) { n, err := " + sc("ParseInt") + "(s, 10, 32); return int32(n), err }"
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return "func(s string) (int64, error) { return " + sc("ParseInt") + "(s, 10, 64) }"
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		return "func(s string) (uint32, error) { n, err := " + sc("ParseUint") + "(s, 10, 32); return uint32(n), err }"
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return "func(s string) (uint64, error) { return " + sc("ParseUint") + "(s, 10, 64) }"
+	default:
+		return ""
+	}
+}
 
 func unwrapGeneric(t *ir.Type) (*ir.Type, bool) {
 	if t.Is(ir.KindGeneric) {
@@ -229,6 +272,12 @@ func (c *convGen) toOgenList(pf *protogen.Field, core *ir.Type, getter, dst stri
 func (c *convGen) toOgenMap(pf *protogen.Field, core *ir.Type, getter, dst string, wrapped bool) {
 	vf := mapValueField(pf)
 	res := c.toOgenColl(vf, core.Item, getter, c.protoElemGoType(vf), c.goType(core.Item), true)
+	// Non-string proto map keys → stringify to the ogen map[string]V keys.
+	if kf := c.keyToStrFn(mapKeyField(pf)); kf != "" {
+		t2 := c.newTmp("c")
+		c.gf.P(t2, " := ", c.qual(c.conv("MapKey")), "(", res, ", ", kf, ")")
+		res = t2
+	}
 	if wrapped {
 		c.gf.P(dst, ".SetTo(", res, ")")
 	} else {
@@ -504,6 +553,15 @@ func (c *convGen) fromOgenMap(pf *protogen.Field, core *ir.Type, src, dst string
 		in = mv
 	}
 	res := c.fromOgenColl(vf, core.Item, in, c.goType(core.Item), c.protoElemGoType(vf), true)
+	// Parse the ogen string map keys back into the proto map's non-string key type.
+	if kf := c.keyFromStrFn(mapKeyField(pf)); kf != "" {
+		t2 := c.newTmp("mk")
+		c.gf.P(t2, ", err := ", c.qual(c.conv("MapKeyErr")), "(", res, ", ", kf, ")")
+		c.gf.P("if err != nil {")
+		c.failLine()
+		c.gf.P("}")
+		res = t2
+	}
 	c.gf.P(dst, " = ", res)
 	if wrapped {
 		c.gf.P("}")

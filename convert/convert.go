@@ -57,6 +57,37 @@ func Map[K comparable, A, B any](in map[K]A, fn func(A) B) map[K]B {
 	return out
 }
 
+// MapKey re-keys a map by transforming each key (e.g. a proto map<uint32,V>'s
+// uint32 keys to the string keys an OpenAPI/ogen map[string]V uses). Values are
+// carried through unchanged (convert them first with Map if needed).
+func MapKey[K comparable, K2 comparable, V any](in map[K]V, kf func(K) K2) map[K2]V {
+	if in == nil {
+		return nil
+	}
+	out := make(map[K2]V, len(in))
+	for k, v := range in {
+		out[kf(k)] = v
+	}
+	return out
+}
+
+// MapKeyErr is MapKey for key converters that may fail (e.g. parsing the string
+// keys of an ogen map back into the proto map's integer key type).
+func MapKeyErr[K comparable, K2 comparable, V any](in map[K]V, kf func(K) (K2, error)) (map[K2]V, error) {
+	if in == nil {
+		return nil, nil
+	}
+	out := make(map[K2]V, len(in))
+	for k, v := range in {
+		nk, err := kf(k)
+		if err != nil {
+			return nil, err
+		}
+		out[nk] = v
+	}
+	return out, nil
+}
+
 // MapErr is Map for value converters that may fail.
 func MapErr[K comparable, A, B any](in map[K]A, fn func(A) (B, error)) (map[K]B, error) {
 	if in == nil {
