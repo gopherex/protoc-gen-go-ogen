@@ -75,6 +75,11 @@ func (g *OpenAPIGenerator) generateOgen(files []*protogen.File, fileOpts *ogen.F
 				return err
 			}
 		}
+		// Cross-package reachable types (monitor/models/common/...) embedded in api
+		// messages get function-form converters in the marked package.
+		if err := g.generateCrossConverters(files, fileOpts, generator); err != nil {
+			return err
+		}
 		if fileOpts.GetGenerateGrpcAdapter() {
 			if err := g.generateAdapters(files, fileOpts, generator); err != nil {
 				return err

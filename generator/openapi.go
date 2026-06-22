@@ -1194,7 +1194,23 @@ var reservedWKTSimpleNames = map[string]bool{
 	"DoubleValue": true, "BoolValue": true, "BytesValue": true,
 }
 
-func reservedWKTName(name string) bool { return reservedWKTSimpleNames[name] }
+// reservedScalarSimpleNames are the Go-builtin scalar identifiers ogen uses for
+// the primitive types. A component taking one of these names collides with the
+// optional wrapper ogen derives for the corresponding builtin (e.g. a message
+// component "String" and a builtin string field both want OptString), which makes
+// ogen mis-resolve the field to the builtin and emit a broken validator. Qualify
+// such components (e.g. schemapb.Schema.Filed.String -> FiledString).
+var reservedScalarSimpleNames = map[string]bool{
+	"String": true, "Bool": true, "Bytes": true,
+	"Int": true, "Int8": true, "Int16": true, "Int32": true, "Int64": true,
+	"Uint": true, "Uint8": true, "Uint16": true, "Uint32": true, "Uint64": true,
+	"UInt": true, "UInt8": true, "UInt16": true, "UInt32": true, "UInt64": true,
+	"Float": true, "Float32": true, "Float64": true, "Double": true,
+}
+
+func reservedWKTName(name string) bool {
+	return reservedWKTSimpleNames[name] || reservedScalarSimpleNames[name]
+}
 
 // qualifiedComponentName prefixes a message's simple name with its immediate
 // qualifier (package last segment or enclosing message), e.g. schemapb.Duration

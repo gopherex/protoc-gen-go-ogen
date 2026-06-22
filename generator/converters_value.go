@@ -299,13 +299,18 @@ func (c *convGen) toOgenInner(pf *protogen.Field, ot *ir.Type, src string) (stri
 		return c.qual(c.grpcb("BytesMultipart")) + "(" + src + ")", true
 	case ot.Is(ir.KindStruct):
 		tmp := c.newTmp("o")
-		c.gf.P(tmp, ", err := ", src, ".ToOgen()")
+		if pf.Message != nil && !c.isLocal(pf.Message) {
+			// Cross-package message: call the package-level converter function.
+			c.gf.P(tmp, ", err := ", ot.Name, "ToOgen(", src, ")")
+		} else {
+			c.gf.P(tmp, ", err := ", src, ".ToOgen()")
+		}
 		c.gf.P("if err != nil {")
 		c.failLine()
 		c.gf.P("}")
 		// ToOgen returns *ogen.T; ogen holds nested structs by value.
 		return "*" + tmp, true
-	case ot.Is(ir.KindEnum):
+	case ot.Is(ir.KindEnum) && pf.Enum != nil:
 		return c.toOgenEnum(pf, ot, src), true
 	case externalImports[ot.Go()] != "":
 		return c.toOgenExternal(ot, src)
@@ -567,12 +572,16 @@ func (c *convGen) fromOgenInner(pf *protogen.Field, ot *ir.Type, src string) (st
 	case ot.Is(ir.KindStruct):
 		tmp := c.newTmp("m")
 		// FromOgen takes *ogen.T; ogen holds nested structs by value, so address it.
-		c.gf.P(tmp, ", err := ", pf.Message.GoIdent.GoName, "FromOgen(&", src, ")")
+		fn := pf.Message.GoIdent.GoName + "FromOgen"
+		if !c.isLocal(pf.Message) {
+			fn = ot.Name + "FromOgen"
+		}
+		c.gf.P(tmp, ", err := ", fn, "(&", src, ")")
 		c.gf.P("if err != nil {")
 		c.failLine()
 		c.gf.P("}")
 		return tmp, true
-	case ot.Is(ir.KindEnum):
+	case ot.Is(ir.KindEnum) && pf.Enum != nil:
 		return c.fromOgenEnum(pf, ot, src), true
 	case externalImports[ot.Go()] != "":
 		return c.fromOgenExternal(ot, src), true
